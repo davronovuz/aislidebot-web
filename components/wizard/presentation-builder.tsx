@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Minus, Plus, Sparkles, Check, RotateCcw, Pencil, X, Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProgressBar } from '@/components/shared/progress-bar';
@@ -18,8 +19,13 @@ interface PriceInfo {
 }
 
 export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInfo }) {
+  const router = useRouter();
   const [phase, setPhase] = useState<'input' | 'building' | 'done'>('input');
   const [inputStep, setInputStep] = useState<1 | 2>(1);
+
+  // Real balance (fetched from API, overrides URL param)
+  const [balance, setBalance] = useState(priceInfo.balance);
+  const [freeLeft, setFreeLeft] = useState(priceInfo.free);
 
   // Input state
   const [topic, setTopic] = useState('');
@@ -53,16 +59,31 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
       tgApp.setBackgroundColor('#F2F2F7');
     }
     // Retry telegram ID
+    let iv: ReturnType<typeof setInterval> | undefined;
     if (!telegramId.current) {
       let tries = 0;
-      const iv = setInterval(() => {
+      iv = setInterval(() => {
         const id = getTelegramId();
-        if (id) { telegramId.current = id; clearInterval(iv); }
+        if (id) { telegramId.current = id; clearInterval(iv); fetchBalance(id); }
         else if (++tries >= 20) clearInterval(iv);
       }, 150);
-      return () => clearInterval(iv);
+    } else {
+      fetchBalance(telegramId.current);
     }
+    return () => { if (iv) clearInterval(iv); };
   }, []);
+
+  const fetchBalance = (tid: number) => {
+    fetch(`/api/user-info?telegram_id=${tid}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.ok) {
+          setBalance(d.balance);
+          setFreeLeft(d.free_presentations ?? 0);
+        }
+      })
+      .catch(() => {});
+  };
 
   useEffect(() => {
     if (phase === 'building' && bottomRef.current) {
@@ -189,17 +210,22 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
       setIsSending(false);
       haptic('error');
       const msg = (err as Error).message ?? '';
-      setSendError(msg.includes('insufficient_balance') ? 'Balans yetarli emas!' : msg || 'Xatolik yuz berdi');
+      if (msg.includes('insufficient_balance')) {
+        router.push('/profile');
+        return;
+      }
+      setSendError(msg || 'Xatolik yuz berdi');
     }
-  }, [slides, outline, topic, details, themeId, lang]);
+  }, [slides, outline, topic, details, themeId, lang, router]);
 
   // ───────────────────────────────────────
   // INPUT PHASE
   // ───────────────────────────────────────
   if (phase === 'input') {
     const canNext = topic.trim().length >= 3;
-    const isFree = priceInfo.free > 0;
+    const isFree = freeLeft > 0;
     const totalPrice = priceInfo.pricePerSlide * slideCount;
+    const canAfford = isFree || balance >= totalPrice;
 
     // Step 1: Topic
     if (inputStep === 1) {
@@ -345,9 +371,9 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
           {/* Narx */}
           <PriceCard
             price={totalPrice}
-            balance={priceInfo.balance}
+            balance={balance}
             isFree={isFree}
-            freeLeft={priceInfo.free}
+            freeLeft={freeLeft}
           />
         </main>
 
@@ -358,13 +384,22 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
           >
             <ChevronLeft size={20} className="text-black/50" />
           </button>
-          <Button
-            variant="primary"
-            className="flex-1 h-[52px]"
-            onClick={() => { haptic('medium'); startGeneration(); }}
-          >
-            <Sparkles size={16} /> Yaratish
-          </Button>
+          {canAfford ? (
+            <Button
+              variant="primary"
+              className="flex-1 h-[52px]"
+              onClick={() => { haptic('medium'); startGeneration(); }}
+            >
+              <Sparkles size={16} /> Yaratish
+            </Button>
+          ) : (
+            <button
+              onClick={() => { haptic('medium'); router.push('/profile'); }}
+              className="flex-1 h-[52px] rounded-2xl bg-red-500 text-white font-semibold text-[15px]"
+            >
+              Balansni to'ldirish →
+            </button>
+          )}
         </BottomBar>
       </div>
     );

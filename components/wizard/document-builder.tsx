@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Minus, Plus, GraduationCap, Sparkles, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProgressBar } from '@/components/shared/progress-bar';
@@ -20,6 +21,7 @@ export default function DocumentBuilder({
   productType: ProductType;
   priceInfo: PriceInfo;
 }) {
+  const router = useRouter();
   const product = PRODUCTS.find(p => p.id === productType)!;
   const TOTAL_STEPS = 6;
 
@@ -38,6 +40,9 @@ export default function DocumentBuilder({
   const [teacherRank, setTeacherRank] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Real balance from API
+  const [balance, setBalance] = useState(priceInfo.balance);
+
   const tg = useRef(getTelegramWebApp());
   const telegramId = useRef(getTelegramId());
   const topicRef = useRef<HTMLTextAreaElement>(null);
@@ -48,6 +53,14 @@ export default function DocumentBuilder({
     tg.current?.expand();
     tg.current?.setHeaderColor('#ffffff');
     tg.current?.setBackgroundColor('#F2F2F7');
+
+    const tid = telegramId.current;
+    if (tid) {
+      fetch(`/api/user-info?telegram_id=${tid}`)
+        .then(r => r.json())
+        .then(d => { if (d.ok) setBalance(d.balance); })
+        .catch(() => {});
+    }
   }, []);
 
   useEffect(() => {
@@ -104,11 +117,17 @@ export default function DocumentBuilder({
     } catch (err) {
       setIsSubmitting(false);
       haptic('error');
-      alert((err as Error).message);
+      const msg = (err as Error).message ?? '';
+      if (msg.includes('insufficient_balance')) {
+        router.push('/profile');
+        return;
+      }
+      alert(msg || 'Xatolik yuz berdi');
     }
   };
 
   const totalPrice = (priceInfo.pricePerPage ?? 500) * pages;
+  const canAfford = balance >= totalPrice;
   const selectedLang = LANGUAGES.find(l => l.id === lang);
   const min = product.minPages ?? 5;
   const max = product.maxPages ?? 50;
@@ -364,7 +383,7 @@ export default function DocumentBuilder({
               ))}
             </div>
             <div className="mt-3">
-              <PriceCard price={totalPrice} balance={priceInfo.balance} />
+              <PriceCard price={totalPrice} balance={balance} />
             </div>
             <div className="mt-4 rounded-2xl px-4 py-3 border bg-green-50/80 border-green-100">
               <p className="text-[11px] text-green-700 leading-relaxed">
@@ -387,7 +406,7 @@ export default function DocumentBuilder({
             <Button variant="primary" className="flex-1 h-[52px]" disabled={!canNext()} onClick={goNext}>
               Davom etish <ChevronRight size={16} />
             </Button>
-          ) : (
+          ) : canAfford ? (
             <Button
               variant="primary"
               className="flex-1 h-[52px] bg-gradient-to-r from-green-500 to-emerald-600 shadow-green-200"
@@ -396,6 +415,13 @@ export default function DocumentBuilder({
             >
               <Sparkles size={16} /> Yaratish
             </Button>
+          ) : (
+            <button
+              onClick={() => { haptic('medium'); router.push('/profile'); }}
+              className="flex-1 h-[52px] rounded-2xl bg-red-500 text-white font-semibold text-[15px]"
+            >
+              Balansni to'ldirish →
+            </button>
           )}
         </div>
       </div>
