@@ -7,7 +7,7 @@ export interface TelegramWebApp {
   sendData: (data: string) => void;
   setHeaderColor: (color: string) => void;
   setBackgroundColor: (color: string) => void;
-  initDataUnsafe?: { user?: { id: number; username?: string; first_name?: string } };
+  initDataUnsafe?: { user?: { id: number; username?: string; first_name?: string; last_name?: string } };
   initData?: string;
   HapticFeedback?: {
     impactOccurred: (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft') => void;
@@ -44,6 +44,8 @@ export function getTelegramId(): number | null {
       if (u) return JSON.parse(decodeURIComponent(u)).id;
     } catch {}
   }
+
+  if (typeof window === 'undefined') return null;
 
   // 3. URL param (bot keyboard orqali)
   const urlParam = new URLSearchParams(window.location.search).get('telegram_id');

@@ -17,6 +17,6 @@ export default function RootPage({
     redirect(`/create/${type.replace(/_/g, '-')}?${new URLSearchParams(searchParams).toString()}`);
   }
 
-  // Default: show product selector
-  redirect('/create');
+  // Default: dashboard
+  redirect('/home');
 }
