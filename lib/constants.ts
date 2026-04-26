@@ -19,7 +19,6 @@ export const THEMES: Theme[] = [
 
 export const PRODUCTS: ProductMeta[] = [
   { id: 'presentation',    name: 'Prezentatsiya',      icon: '📊', desc: 'Professional PPTX slaydlar',          minSlides: 5,  maxSlides: 30, priceUnit: 'slide',    category: 'presentation' },
-  { id: 'pitch_deck',      name: 'Pitch Deck',          icon: '🚀', desc: 'Investor uchun pitch',                minSlides: 10, maxSlides: 15, priceUnit: 'fixed',    category: 'presentation' },
   { id: 'mustaqil_ish',    name: 'Mustaqil ish',        icon: '📝', desc: 'Fan bo\'yicha tadqiqot',              minPages: 5,   maxPages: 20,  priceUnit: 'page',     category: 'document' },
   { id: 'referat',         name: 'Referat',             icon: '📄', desc: 'Mavzu bo\'yicha ilmiy tahlil',        minPages: 10,  maxPages: 25,  priceUnit: 'page',     category: 'document' },
   { id: 'kurs_ishi',       name: 'Kurs ishi',           icon: '📚', desc: 'Chuqur ilmiy tadqiqot',               minPages: 25,  maxPages: 50,  priceUnit: 'page',     category: 'document' },

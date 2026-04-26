@@ -7,7 +7,7 @@ export interface TelegramWebApp {
   sendData: (data: string) => void;
   setHeaderColor: (color: string) => void;
   setBackgroundColor: (color: string) => void;
-  initDataUnsafe?: { user?: { id: number; username?: string; first_name?: string; last_name?: string } };
+  initDataUnsafe?: { user?: { id: number; username?: string; first_name?: string; last_name?: string; photo_url?: string } };
   initData?: string;
   HapticFeedback?: {
     impactOccurred: (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft') => void;
@@ -17,6 +17,8 @@ export interface TelegramWebApp {
   colorScheme?: 'light' | 'dark';
   isExpanded?: boolean;
   version?: string;
+  showAlert?: (message: string, callback?: () => void) => void;
+  showConfirm?: (message: string, callback: (confirmed: boolean) => void) => void;
 }
 
 declare global {

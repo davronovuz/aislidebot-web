@@ -16,7 +16,7 @@ interface UserInfo {
 const SECTIONS = [
   {
     label: 'Prezentatsiya',
-    ids: ['presentation', 'pitch_deck'],
+    ids: ['presentation'],
   },
   {
     label: 'Ilmiy ishlar',

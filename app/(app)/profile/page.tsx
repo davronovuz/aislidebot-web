@@ -38,8 +38,20 @@ function formatDate(dt: string) {
   return new Date(dt).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function Avatar({ name }: { name: string }) {
+function Avatar({ name, photoUrl }: { name: string; photoUrl?: string }) {
+  const [errored, setErrored] = useState(false);
   const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  if (photoUrl && !errored) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={photoUrl}
+        alt={name}
+        onError={() => setErrored(true)}
+        className="w-20 h-20 rounded-[28px] object-cover shadow-xl shadow-orange-200"
+      />
+    );
+  }
   return (
     <div className="w-20 h-20 rounded-[28px] bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-xl shadow-orange-200">
       <span className="text-white text-3xl font-bold">{initials}</span>
@@ -105,7 +117,7 @@ export default function ProfilePage() {
       {/* Header */}
       <div className="bg-white px-4 pt-5 pb-5 border-b border-black/[0.05]">
         <div className="flex items-center gap-4">
-          <Avatar name={name} />
+          <Avatar name={name} photoUrl={user?.photo_url} />
           <div className="flex-1 min-w-0">
             <h1 className="text-[20px] font-bold text-black truncate">{name}</h1>
             {username && (
