@@ -48,9 +48,8 @@ export default function HomePage() {
 
   const go = (id: string) => {
     haptic('medium');
-    const balanceParam = info ? `&balance=${info.balance}&free=${info.free_presentations}` : '';
-    if (id === 'presentation') router.push(`/create/presentation?placeholder=1${balanceParam}`);
-    else router.push(`/create/${id.replace(/_/g, '-')}?placeholder=1${balanceParam}`);
+    if (id === 'presentation') router.push('/create/presentation');
+    else router.push(`/create/${id.replace(/_/g, '-')}`);
   };
 
   return (

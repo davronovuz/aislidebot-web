@@ -26,7 +26,7 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
   // Real balance (fetched from API, overrides URL param)
   const [balance, setBalance] = useState(priceInfo.balance);
   const [freeLeft, setFreeLeft] = useState(priceInfo.free);
-  const [balanceLoaded, setBalanceLoaded] = useState(priceInfo.balance > 0 || priceInfo.free > 0);
+  const [balanceLoaded, setBalanceLoaded] = useState(false);
 
   // Input state
   const [topic, setTopic] = useState('');

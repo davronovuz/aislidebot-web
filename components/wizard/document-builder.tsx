@@ -42,7 +42,7 @@ export default function DocumentBuilder({
 
   // Real balance from API
   const [balance, setBalance] = useState(priceInfo.balance);
-  const [balanceLoaded, setBalanceLoaded] = useState(priceInfo.balance > 0);
+  const [balanceLoaded, setBalanceLoaded] = useState(false);
 
   const tg = useRef(getTelegramWebApp());
   const telegramId = useRef(getTelegramId());
