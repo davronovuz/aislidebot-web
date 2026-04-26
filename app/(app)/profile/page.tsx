@@ -62,8 +62,8 @@ function Avatar({ name, photoUrl }: { name: string; photoUrl?: string }) {
 export default function ProfilePage() {
   const tg = useRef(getTelegramWebApp());
   const telegramId = useRef(getTelegramId());
-  const user = tg.current?.initDataUnsafe?.user;
 
+  const [user, setUser] = useState(tg.current?.initDataUnsafe?.user);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,16 +76,31 @@ export default function ProfilePage() {
   }, []);
 
   useEffect(() => {
-    const tid = telegramId.current;
-    if (!tid) { setLoading(false); return; }
+    const loadFor = (tid: number) => {
+      Promise.all([
+        fetch(`/api/user-info?telegram_id=${tid}`).then(r => r.json()),
+        fetch(`/api/user-transactions?telegram_id=${tid}&limit=10`).then(r => r.json()),
+      ]).then(([info, trans]) => {
+        if (info.ok) setUserInfo(info);
+        if (trans.ok) setTransactions(trans.transactions);
+      }).catch(() => {}).finally(() => setLoading(false));
+    };
 
-    Promise.all([
-      fetch(`/api/user-info?telegram_id=${tid}`).then(r => r.json()),
-      fetch(`/api/user-transactions?telegram_id=${tid}&limit=10`).then(r => r.json()),
-    ]).then(([info, trans]) => {
-      if (info.ok) setUserInfo(info);
-      if (trans.ok) setTransactions(trans.transactions);
-    }).catch(() => {}).finally(() => setLoading(false));
+    if (telegramId.current) {
+      loadFor(telegramId.current);
+      return;
+    }
+
+    // Telegram WebApp may not have populated initDataUnsafe yet — retry briefly
+    let tries = 0;
+    const iv = setInterval(() => {
+      const id = getTelegramId();
+      const u = tg.current?.initDataUnsafe?.user;
+      if (u) setUser(u);
+      if (id) { telegramId.current = id; clearInterval(iv); loadFor(id); }
+      else if (++tries >= 20) { clearInterval(iv); setLoading(false); }
+    }, 150);
+    return () => clearInterval(iv);
   }, []);
 
   const name = user ? `${user.first_name}${user.last_name ? ' ' + user.last_name : ''}` : 'Foydalanuvchi';

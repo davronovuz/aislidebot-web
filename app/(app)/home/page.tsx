@@ -32,7 +32,7 @@ export default function HomePage() {
   const tg     = useRef(getTelegramWebApp());
   const tid    = useRef(getTelegramId());
   const router = useRouter();
-  const user   = tg.current?.initDataUnsafe?.user;
+  const [user, setUser] = useState(tg.current?.initDataUnsafe?.user);
   const [info, setInfo] = useState<UserInfo | null>(null);
 
   useEffect(() => {
@@ -40,10 +40,23 @@ export default function HomePage() {
     tg.current?.expand();
     tg.current?.setHeaderColor('#F2F2F7');
     tg.current?.setBackgroundColor('#F2F2F7');
-    if (tid.current) {
-      fetch(`/api/user-info?telegram_id=${tid.current}`)
+
+    const loadFor = (id: number) => {
+      fetch(`/api/user-info?telegram_id=${id}`)
         .then(r => r.json()).then(d => { if (d.ok) setInfo(d); }).catch(() => {});
-    }
+    };
+
+    if (tid.current) { loadFor(tid.current); return; }
+
+    let tries = 0;
+    const iv = setInterval(() => {
+      const id = getTelegramId();
+      const u = tg.current?.initDataUnsafe?.user;
+      if (u) setUser(u);
+      if (id) { tid.current = id; clearInterval(iv); loadFor(id); }
+      else if (++tries >= 20) clearInterval(iv);
+    }, 150);
+    return () => clearInterval(iv);
   }, []);
 
   const go = (id: string) => {
