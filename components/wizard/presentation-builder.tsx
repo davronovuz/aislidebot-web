@@ -67,7 +67,7 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
       iv = setInterval(() => {
         const id = getTelegramId();
         if (id) { telegramId.current = id; clearInterval(iv); fetchBalance(id); }
-        else if (++tries >= 20) clearInterval(iv);
+        else if (++tries >= 20) { clearInterval(iv); setBalanceLoaded(true); }
       }, 150);
     } else {
       fetchBalance(telegramId.current);
