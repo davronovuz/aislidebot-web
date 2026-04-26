@@ -32,18 +32,28 @@ export function getTelegramWebApp(): TelegramWebApp | null {
   return window.Telegram?.WebApp ?? null;
 }
 
+const STORAGE_KEY = 'aislide_telegram_id';
+
+function persistId(id: number) {
+  try { window.localStorage?.setItem(STORAGE_KEY, String(id)); } catch {}
+}
+
 export function getTelegramId(): number | null {
   const tg = getTelegramWebApp();
 
   // 1. initDataUnsafe
   const uid = tg?.initDataUnsafe?.user?.id;
-  if (uid) return uid;
+  if (uid) { if (typeof window !== 'undefined') persistId(uid); return uid; }
 
   // 2. initData parse
   if (tg?.initData) {
     try {
       const u = new URLSearchParams(tg.initData).get('user');
-      if (u) return JSON.parse(decodeURIComponent(u)).id;
+      if (u) {
+        const id = JSON.parse(decodeURIComponent(u)).id as number;
+        persistId(id);
+        return id;
+      }
     } catch {}
   }
 
@@ -51,7 +61,11 @@ export function getTelegramId(): number | null {
 
   // 3. URL param (bot keyboard orqali)
   const urlParam = new URLSearchParams(window.location.search).get('telegram_id');
-  if (urlParam) return parseInt(urlParam, 10);
+  if (urlParam) {
+    const id = parseInt(urlParam, 10);
+    persistId(id);
+    return id;
+  }
 
   // 4. Hash (Telegram Desktop)
   try {
@@ -59,8 +73,18 @@ export function getTelegramId(): number | null {
     const d = hp.get('tgWebAppData');
     if (d) {
       const u = new URLSearchParams(d).get('user');
-      if (u) return JSON.parse(decodeURIComponent(u)).id;
+      if (u) {
+        const id = JSON.parse(decodeURIComponent(u)).id as number;
+        persistId(id);
+        return id;
+      }
     }
+  } catch {}
+
+  // 5. Persisted from a previous page load
+  try {
+    const stored = window.localStorage?.getItem(STORAGE_KEY);
+    if (stored) return parseInt(stored, 10);
   } catch {}
 
   return null;
