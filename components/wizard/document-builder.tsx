@@ -63,6 +63,8 @@ export default function DocumentBuilder({
         .then(d => { if (d.ok) setBalance(d.balance); })
         .catch(() => {})
         .finally(() => setBalanceLoaded(true));
+    } else {
+      setBalanceLoaded(true);
     }
   }, []);
 
