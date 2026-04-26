@@ -26,6 +26,7 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
   // Real balance (fetched from API, overrides URL param)
   const [balance, setBalance] = useState(priceInfo.balance);
   const [freeLeft, setFreeLeft] = useState(priceInfo.free);
+  const [balanceLoaded, setBalanceLoaded] = useState(priceInfo.balance > 0 || priceInfo.free > 0);
 
   // Input state
   const [topic, setTopic] = useState('');
@@ -82,7 +83,8 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
           setFreeLeft(d.free_presentations ?? 0);
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setBalanceLoaded(true));
   };
 
   useEffect(() => {
@@ -384,7 +386,11 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
           >
             <ChevronLeft size={20} className="text-black/50" />
           </button>
-          {canAfford ? (
+          {!balanceLoaded ? (
+            <button disabled className="flex-1 h-[52px] rounded-2xl bg-black/10 text-black/30 font-semibold text-[15px]">
+              Yuklanmoqda...
+            </button>
+          ) : canAfford ? (
             <Button
               variant="primary"
               className="flex-1 h-[52px]"

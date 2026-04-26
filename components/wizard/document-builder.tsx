@@ -42,6 +42,7 @@ export default function DocumentBuilder({
 
   // Real balance from API
   const [balance, setBalance] = useState(priceInfo.balance);
+  const [balanceLoaded, setBalanceLoaded] = useState(priceInfo.balance > 0);
 
   const tg = useRef(getTelegramWebApp());
   const telegramId = useRef(getTelegramId());
@@ -59,7 +60,8 @@ export default function DocumentBuilder({
       fetch(`/api/user-info?telegram_id=${tid}`)
         .then(r => r.json())
         .then(d => { if (d.ok) setBalance(d.balance); })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => setBalanceLoaded(true));
     }
   }, []);
 
@@ -406,6 +408,10 @@ export default function DocumentBuilder({
             <Button variant="primary" className="flex-1 h-[52px]" disabled={!canNext()} onClick={goNext}>
               Davom etish <ChevronRight size={16} />
             </Button>
+          ) : !balanceLoaded ? (
+            <button disabled className="flex-1 h-[52px] rounded-2xl bg-black/10 text-black/30 font-semibold text-[15px]">
+              Yuklanmoqda...
+            </button>
           ) : canAfford ? (
             <Button
               variant="primary"
