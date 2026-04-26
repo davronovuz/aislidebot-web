@@ -42,7 +42,8 @@ export default function DocumentBuilder({
 
   // Real balance from API
   const [balance, setBalance] = useState(priceInfo.balance);
-  const [balanceLoaded, setBalanceLoaded] = useState(false);
+  // If URL params already provided balance (from bot keyboard), skip loading state
+  const [balanceLoaded, setBalanceLoaded] = useState(priceInfo.balance > 0);
 
   const tg = useRef(getTelegramWebApp());
   const telegramId = useRef(getTelegramId());
@@ -385,7 +386,11 @@ export default function DocumentBuilder({
               ))}
             </div>
             <div className="mt-3">
-              <PriceCard price={totalPrice} balance={balance} />
+              {balanceLoaded ? (
+                <PriceCard price={totalPrice} balance={balance} />
+              ) : (
+                <div className="h-[88px] bg-white border border-black/[0.06] rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] animate-pulse" />
+              )}
             </div>
             <div className="mt-4 rounded-2xl px-4 py-3 border bg-green-50/80 border-green-100">
               <p className="text-[11px] text-green-700 leading-relaxed">

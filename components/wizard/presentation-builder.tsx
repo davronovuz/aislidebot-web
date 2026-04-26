@@ -26,7 +26,8 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
   // Real balance (fetched from API, overrides URL param)
   const [balance, setBalance] = useState(priceInfo.balance);
   const [freeLeft, setFreeLeft] = useState(priceInfo.free);
-  const [balanceLoaded, setBalanceLoaded] = useState(false);
+  // If URL params provided balance/free (from bot keyboard), trust them while API loads
+  const [balanceLoaded, setBalanceLoaded] = useState(priceInfo.balance > 0 || priceInfo.free > 0);
 
   // Input state
   const [topic, setTopic] = useState('');
@@ -371,12 +372,16 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
           </div>
 
           {/* Narx */}
-          <PriceCard
-            price={totalPrice}
-            balance={balance}
-            isFree={isFree}
-            freeLeft={freeLeft}
-          />
+          {balanceLoaded ? (
+            <PriceCard
+              price={totalPrice}
+              balance={balance}
+              isFree={isFree}
+              freeLeft={freeLeft}
+            />
+          ) : (
+            <div className="h-[88px] bg-white border border-black/[0.06] rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] animate-pulse" />
+          )}
         </main>
 
         <BottomBar>
