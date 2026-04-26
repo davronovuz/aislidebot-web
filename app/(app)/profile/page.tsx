@@ -13,6 +13,8 @@ interface UserInfo {
   member_since: string;
   price_per_slide: number;
   price_per_page: number;
+  username: string | null;
+  first_name: string | null;
   subscription: {
     plan_name: string;
     display_name: string;
@@ -103,8 +105,10 @@ export default function ProfilePage() {
     return () => clearInterval(iv);
   }, []);
 
-  const name = user ? `${user.first_name}${user.last_name ? ' ' + user.last_name : ''}` : 'Foydalanuvchi';
-  const username = user?.username;
+  const name = user
+    ? `${user.first_name ?? ''}${user.last_name ? ' ' + user.last_name : ''}`.trim() || (user.username ?? 'Foydalanuvchi')
+    : (userInfo?.first_name || userInfo?.username || 'Foydalanuvchi');
+  const username = user?.username ?? userInfo?.username;
 
   if (loading) {
     return (

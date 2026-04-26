@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils';
 interface UserInfo {
   balance: number;
   free_presentations: number;
+  username: string | null;
+  first_name: string | null;
   subscription: { display_name: string } | null;
 }
 
@@ -74,7 +76,7 @@ export default function HomePage() {
           <div>
             <p className="text-[11px] text-black/35 font-medium">Assalomu alaykum 👋</p>
             <h1 className="text-[22px] font-bold text-black mt-0.5">
-              {user?.first_name ?? 'Foydalanuvchi'}
+              {user?.first_name ?? info?.first_name ?? info?.username ?? 'Foydalanuvchi'}
             </h1>
           </div>
 
