@@ -1,5 +1,3 @@
-// Root page — Telegram Mini App router
-// URL params: ?type=presentation|document|[product_type]
 import { redirect } from 'next/navigation';
 
 export default function RootPage({
@@ -17,6 +15,5 @@ export default function RootPage({
     redirect(`/create/${type.replace(/_/g, '-')}?${new URLSearchParams(searchParams).toString()}`);
   }
 
-  // Default: dashboard
   redirect('/home');
 }
