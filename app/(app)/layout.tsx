@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, ShoppingBag, ClipboardList, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { haptic } from '@/lib/telegram';
+import { haptic, getTelegramId } from '@/lib/telegram';
 
 const TABS = [
   { href: '/home',        icon: Home,          label: 'Asosiy'  },
@@ -15,6 +15,8 @@ const TABS = [
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const tid = typeof window !== 'undefined' ? getTelegramId() : null;
+  const tidQs = tid ? `?telegram_id=${tid}` : '';
 
   const activeTab = TABS.find(t =>
     pathname === t.href ||
@@ -37,7 +39,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               return (
                 <Link
                   key={href}
-                  href={href}
+                  href={`${href}${tidQs}`}
                   onClick={() => haptic('light')}
                   className="flex-1 flex flex-col items-center justify-center py-2 gap-0.5"
                 >
