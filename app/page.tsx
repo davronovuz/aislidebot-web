@@ -1,19 +1,33 @@
-import { redirect } from 'next/navigation';
+'use client';
 
-export default function RootPage({
-  searchParams,
-}: {
-  searchParams: Record<string, string>;
-}) {
-  const type = searchParams?.type;
+import { useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-  if (type === 'presentation') {
-    redirect(`/create/presentation?${new URLSearchParams(searchParams).toString()}`);
-  }
+/**
+ * Client-side redirect to preserve URL hash (Telegram WebApp's #tgWebAppData=...).
+ * Server-side redirect() would drop the hash before telegram-web-app.js can read it,
+ * leaving initDataUnsafe.user empty on every subsequent page.
+ */
+export default function RootPage() {
+  const router = useRouter();
+  const params = useSearchParams();
 
-  if (type && type !== 'presentation') {
-    redirect(`/create/${type.replace(/_/g, '-')}?${new URLSearchParams(searchParams).toString()}`);
-  }
+  useEffect(() => {
+    const qs = params.toString();
+    const suffix = qs ? `?${qs}` : '';
+    const type = params.get('type');
 
-  redirect('/home');
+    let target = '/home';
+    if (type === 'presentation') target = `/create/presentation${suffix}`;
+    else if (type) target = `/create/${type.replace(/_/g, '-')}${suffix}`;
+
+    // router.replace preserves hash automatically
+    router.replace(target);
+  }, [params, router]);
+
+  return (
+    <div className="min-h-screen bg-[#F2F2F7] flex items-center justify-center">
+      <div className="w-12 h-12 rounded-full border-4 border-orange-500/20 border-t-orange-500 animate-spin" />
+    </div>
+  );
 }
