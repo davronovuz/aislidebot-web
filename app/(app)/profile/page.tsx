@@ -111,6 +111,13 @@ export default function ProfilePage() {
   const username = user?.username ?? userInfo?.username;
 
   if (!loading && !userInfo) {
+    const debug = {
+      tg: !!tg.current,
+      tgUser: !!tg.current?.initDataUnsafe?.user,
+      tid: telegramId.current,
+      ls: typeof window !== 'undefined' ? window.localStorage?.getItem('aislide_telegram_id') : null,
+      url: typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('telegram_id') : null,
+    };
     return (
       <div className="min-h-screen bg-[#F2F2F7] flex flex-col items-center justify-center px-6 text-center">
         <div className="w-20 h-20 rounded-3xl bg-orange-50 flex items-center justify-center mb-4">
@@ -120,6 +127,7 @@ export default function ProfilePage() {
         <p className="text-[13px] text-black/40 mt-2 max-w-[280px] leading-relaxed">
           Profilingizni ko&apos;rish uchun bot menyusidan <b>📊 Prezentatsiya</b> yoki <b>📝 Mustaqil ish</b> tugmasini bosing.
         </p>
+        <pre className="mt-4 text-[10px] text-black/40 bg-white rounded-lg px-3 py-2 text-left">{JSON.stringify(debug, null, 2)}</pre>
         <button
           onClick={() => window.location.reload()}
           className="mt-5 px-5 py-2.5 bg-orange-500 rounded-xl text-white text-[13px] font-semibold"
