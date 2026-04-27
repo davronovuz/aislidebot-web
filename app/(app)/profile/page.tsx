@@ -254,18 +254,7 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-        ) : (
-          <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl p-4 shadow-lg shadow-orange-200 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
-              <Star size={18} className="text-white" />
-            </div>
-            <div className="flex-1">
-              <p className="text-white text-[14px] font-bold">Obuna olish</p>
-              <p className="text-orange-100 text-[11px] mt-0.5">Cheksiz yaratish — arzon narxda</p>
-            </div>
-            <ChevronRight size={16} className="text-white/60" />
-          </div>
-        )}
+        ) : null}
 
         {/* Narxlar */}
         {userInfo && (

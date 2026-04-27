@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { getTelegramId, getTelegramWebApp } from '@/lib/telegram';
+import { getTelegramId, getTelegramWebApp, haptic } from '@/lib/telegram';
 import { cn } from '@/lib/utils';
-import { ClipboardList, RefreshCw } from 'lucide-react';
+import { ClipboardList, RefreshCw, Download } from 'lucide-react';
 
 interface Task {
   task_uuid: string;
@@ -13,6 +13,7 @@ interface Task {
   progress: number;
   amount_charged: number;
   created_at: string;
+  result_file_id: string | null;
 }
 
 const TYPE_META: Record<string, { label: string; icon: string }> = {
@@ -70,6 +71,7 @@ export default function HistoryPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [resending, setResending] = useState<string | null>(null);
 
   useEffect(() => {
     tg.current?.ready();
@@ -91,6 +93,30 @@ export default function HistoryPage() {
       if (data.ok) setTasks(data.tasks);
     } catch { /* ignore */ }
     finally { setLoading(false); setRefreshing(false); }
+  };
+
+  const resendFile = async (taskUuid: string) => {
+    const tid = telegramId.current;
+    if (!tid) return;
+    setResending(taskUuid);
+    try {
+      const res = await fetch('/api/resend-task', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task_uuid: taskUuid, telegram_id: tid }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        haptic('success');
+        tg.current?.close?.();
+      } else {
+        haptic('error');
+      }
+    } catch {
+      haptic('error');
+    } finally {
+      setResending(null);
+    }
   };
 
   useEffect(() => { fetchTasks(); }, []);
@@ -228,8 +254,15 @@ export default function HistoryPage() {
                           {task.amount_charged.toLocaleString()} so&apos;m
                         </span>
                       )}
-                      {task.amount_charged === 0 && task.status !== 'failed' && (
-                        <span className="text-[10px] text-green-500 font-medium">Bepul</span>
+                      {task.status === 'completed' && task.result_file_id && (
+                        <button
+                          onClick={() => resendFile(task.task_uuid)}
+                          disabled={resending === task.task_uuid}
+                          className="flex items-center gap-1 text-[10px] font-semibold text-orange-500 px-2 py-0.5 rounded-lg bg-orange-50 active:bg-orange-100 disabled:opacity-50"
+                        >
+                          <Download size={10} />
+                          {resending === task.task_uuid ? 'Yuborilmoqda…' : 'Yuklab olish'}
+                        </button>
                       )}
                     </div>
                   </div>
