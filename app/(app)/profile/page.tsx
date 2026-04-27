@@ -212,15 +212,6 @@ export default function ProfilePage() {
                 <p className="text-orange-200 text-[10px]">Sarflangan</p>
                 <p className="text-white text-[13px] font-bold">{(userInfo?.total_spent ?? 0).toLocaleString()}</p>
               </div>
-              {(userInfo?.free_presentations ?? 0) > 0 && (
-                <>
-                  <div className="w-px bg-white/20" />
-                  <div className="flex-1">
-                    <p className="text-orange-200 text-[10px]">Bepul</p>
-                    <p className="text-white text-[13px] font-bold">{userInfo?.free_presentations} ta</p>
-                  </div>
-                </>
-              )}
             </div>
           </div>
         </div>

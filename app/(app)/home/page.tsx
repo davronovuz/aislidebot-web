@@ -83,20 +83,11 @@ export default function HomePage() {
           {/* Balance pill */}
           {info && (
             <div className="bg-white rounded-2xl px-3.5 py-2.5 shadow-[0_2px_12px_rgba(0,0,0,0.07)] text-right">
-              {info.free_presentations > 0 ? (
-                <>
-                  <p className="text-[9px] text-orange-400 font-semibold uppercase tracking-wide">Bepul</p>
-                  <p className="text-[17px] font-bold text-orange-500 leading-tight">{info.free_presentations} ta</p>
-                </>
-              ) : (
-                <>
-                  <p className="text-[9px] text-black/30 font-semibold uppercase tracking-wide">Balans</p>
-                  <p className="text-[17px] font-bold text-black leading-tight">
-                    {info.balance.toLocaleString()}
-                    <span className="text-[10px] text-black/30 ml-0.5">so'm</span>
-                  </p>
-                </>
-              )}
+              <p className="text-[9px] text-black/30 font-semibold uppercase tracking-wide">Balans</p>
+              <p className="text-[17px] font-bold text-black leading-tight">
+                {info.balance.toLocaleString()}
+                <span className="text-[10px] text-black/30 ml-0.5">so'm</span>
+              </p>
             </div>
           )}
         </div>
