@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getTelegramId, getTelegramWebApp, haptic } from '@/lib/telegram';
-import { ChevronLeft, BookMarked, FileText, Lock, Eye } from 'lucide-react';
+import { ChevronLeft, BookMarked, FileText, Lock, X } from 'lucide-react';
 import { BOT_API_URL } from '@/lib/constants';
 
 interface ReadyWork {
@@ -26,6 +26,8 @@ const WORK_TYPE_LABELS: Record<string, string> = {
   kurs_ishi:    'Kurs ishi',
   diplom:       'Diplom ishi',
   magistr:      'Magistr',
+  tezis:        'Tezis',
+  ilmiy_maqola: 'Ilmiy maqola',
 };
 
 const LANG_LABELS: Record<string, string> = {
@@ -40,10 +42,12 @@ export default function WorkDetailPage() {
   const tg      = useRef(getTelegramWebApp());
   const tid     = useRef(getTelegramId());
 
-  const [work, setWork]       = useState<ReadyWork | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [balance, setBalance] = useState(0);
-  const [buying, setBuying]   = useState(false);
+  const [work, setWork]                 = useState<ReadyWork | null>(null);
+  const [previewCount, setPreviewCount] = useState(0);
+  const [loading, setLoading]           = useState(true);
+  const [balance, setBalance]           = useState(0);
+  const [buying, setBuying]             = useState(false);
+  const [activePage, setActivePage]     = useState<number | null>(null);
 
   useEffect(() => {
     tg.current?.ready();
@@ -61,7 +65,10 @@ export default function WorkDetailPage() {
           ? fetch(`/api/user-info?telegram_id=${tid.current}`).then(r => r.json())
           : Promise.resolve({}),
       ]);
-      if (wRes.ok) setWork(wRes.work);
+      if (wRes.ok) {
+        setWork(wRes.work);
+        setPreviewCount(wRes.preview_count ?? 0);
+      }
       if (uRes.ok) setBalance(uRes.balance ?? 0);
     } catch { /* ignore */ }
     finally { setLoading(false); }
@@ -135,6 +142,8 @@ export default function WorkDetailPage() {
     }
   };
 
+  const pageImg = (n: number) => `${BOT_API_URL}/api/works/${work.id}/page/${n}`;
+
   return (
     <div className="min-h-screen bg-[#F2F2F7]">
       {/* Header */}
@@ -154,31 +163,58 @@ export default function WorkDetailPage() {
         </div>
       </div>
 
-      <div className="px-4 pb-32 space-y-3">
-        {/* Preview (first page) or icon banner */}
-        {work.preview_available ? (
-          <div className="w-full rounded-2xl overflow-hidden bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+      <div className="px-4 pb-32 space-y-4">
+        {/* Hero preview (page 1) */}
+        {previewCount > 0 ? (
+          <button
+            onClick={() => { haptic('select'); setActivePage(1); }}
+            className="w-full rounded-2xl overflow-hidden bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)] active:scale-[0.99] transition-transform"
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={`${BOT_API_URL}/api/works/${work.id}/preview`}
+              src={pageImg(1)}
               alt={`${work.title} preview`}
               className="w-full h-auto"
             />
-            <div className="flex items-center gap-1 px-3 py-2 border-t border-black/[0.04]">
-              <Eye size={11} className="text-blue-500" />
-              <span className="text-[10px] text-blue-500 font-medium">1-sahifa namunasi</span>
-            </div>
-          </div>
+          </button>
         ) : (
-          <div className="w-full h-36 rounded-2xl bg-blue-50 flex flex-col items-center justify-center gap-2 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+          <div className="w-full h-44 rounded-2xl bg-blue-50 flex flex-col items-center justify-center gap-2 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
             <BookMarked size={40} className="text-blue-400" />
             <span className="text-[13px] font-semibold text-blue-500">
               {WORK_TYPE_LABELS[work.work_type] ?? work.work_type}
             </span>
+            <span className="text-[10px] text-blue-400">Preview tayyorlanmoqda</span>
           </div>
         )}
 
-        {/* Info card */}
+        {/* All pages grid */}
+        {previewCount > 1 && (
+          <div>
+            <p className="text-[11px] font-semibold text-black/35 uppercase tracking-wider mb-2 px-1">
+              Barcha sahifalar ({previewCount})
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {Array.from({ length: previewCount }).map((_, i) => {
+                const n = i + 1;
+                return (
+                  <button
+                    key={n}
+                    onClick={() => { haptic('select'); setActivePage(n); }}
+                    className="relative aspect-[3/4] bg-white rounded-xl overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.06)] active:scale-[0.97] transition-transform"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={pageImg(n)} alt={`Sahifa ${n}`} className="w-full h-full object-cover bg-white" loading="lazy" />
+                    <span className="absolute top-1 left-1 bg-black/60 text-white text-[9px] font-semibold px-1.5 py-0.5 rounded">
+                      {n}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Info */}
         <div className="bg-white rounded-2xl p-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)] space-y-0">
           {[
             { label: 'Fan', value: work.subject || '—' },
@@ -203,7 +239,7 @@ export default function WorkDetailPage() {
           </div>
         </div>
 
-        {/* Balance check */}
+        {/* Balance */}
         <div className={`rounded-2xl p-4 ${canAfford ? 'bg-green-50' : 'bg-red-50'}`}>
           <div className="flex items-center justify-between">
             <span className="text-[13px] text-black/50">Balansingiz</span>
@@ -230,8 +266,8 @@ export default function WorkDetailPage() {
         <div className="bg-white rounded-2xl p-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
           <p className="text-[13px] font-semibold text-black mb-3">Nima olasiz?</p>
           {[
-            { icon: FileText, text: 'To\'liq tayyor ish fayli (PDF/DOCX)' },
-            { icon: BookMarked, text: `${work.page_count} ta sahifa — professional yozuv` },
+            { icon: FileText, text: "To'liq tayyor ish fayli" },
+            { icon: BookMarked, text: `${work.page_count} ta sahifa` },
           ].map((item, i) => (
             <div key={i} className="flex items-center gap-3 mb-2 last:mb-0">
               <div className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center flex-shrink-0">
@@ -266,6 +302,41 @@ export default function WorkDetailPage() {
           )}
         </button>
       </div>
+
+      {/* Lightbox */}
+      {activePage !== null && (
+        <div
+          className="fixed inset-0 bg-black/95 z-50 flex flex-col"
+          onClick={() => setActivePage(null)}
+        >
+          <div className="flex items-center justify-between p-4 text-white">
+            <span className="text-[13px] font-semibold">Sahifa {activePage} / {previewCount}</span>
+            <button className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
+              <X size={18} />
+            </button>
+          </div>
+          <div className="flex-1 flex items-center justify-center px-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={pageImg(activePage)} alt={`Sahifa ${activePage}`} className="max-w-full max-h-full object-contain" />
+          </div>
+          <div className="flex justify-center gap-2 p-4">
+            <button
+              onClick={e => { e.stopPropagation(); setActivePage(Math.max(1, activePage - 1)); }}
+              disabled={activePage <= 1}
+              className="px-4 py-2 rounded-xl bg-white/10 text-white text-[12px] font-semibold disabled:opacity-30"
+            >
+              ‹ Orqaga
+            </button>
+            <button
+              onClick={e => { e.stopPropagation(); setActivePage(Math.min(previewCount, activePage + 1)); }}
+              disabled={activePage >= previewCount}
+              className="px-4 py-2 rounded-xl bg-white/10 text-white text-[12px] font-semibold disabled:opacity-30"
+            >
+              Keyingi ›
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
