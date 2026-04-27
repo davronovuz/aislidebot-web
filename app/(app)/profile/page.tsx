@@ -117,6 +117,9 @@ export default function ProfilePage() {
       tid: telegramId.current,
       ls: typeof window !== 'undefined' ? window.localStorage?.getItem('aislide_telegram_id') : null,
       url: typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('telegram_id') : null,
+      initData: tg.current?.initData ? tg.current.initData.slice(0, 80) + '...' : null,
+      hash: typeof window !== 'undefined' ? window.location.hash.slice(0, 80) : null,
+      pathname: typeof window !== 'undefined' ? window.location.pathname : null,
     };
     return (
       <div className="min-h-screen bg-[#F2F2F7] flex flex-col items-center justify-center px-6 text-center">
