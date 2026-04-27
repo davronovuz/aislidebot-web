@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getTelegramId, getTelegramWebApp, haptic } from '@/lib/telegram';
 import { ChevronLeft, BookMarked, FileText, Lock, Eye } from 'lucide-react';
+import { BOT_API_URL } from '@/lib/constants';
 
 interface ReadyWork {
   id: number;
@@ -154,19 +155,28 @@ export default function WorkDetailPage() {
       </div>
 
       <div className="px-4 pb-32 space-y-3">
-        {/* Icon banner */}
-        <div className="w-full h-36 rounded-2xl bg-blue-50 flex flex-col items-center justify-center gap-2 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
-          <BookMarked size={40} className="text-blue-400" />
-          <span className="text-[13px] font-semibold text-blue-500">
-            {WORK_TYPE_LABELS[work.work_type] ?? work.work_type}
-          </span>
-          {work.preview_available && (
-            <div className="flex items-center gap-1 bg-blue-100 px-2.5 py-1 rounded-lg">
+        {/* Preview (first page) or icon banner */}
+        {work.preview_available ? (
+          <div className="w-full rounded-2xl overflow-hidden bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`${BOT_API_URL}/api/works/${work.id}/preview`}
+              alt={`${work.title} preview`}
+              className="w-full h-auto"
+            />
+            <div className="flex items-center gap-1 px-3 py-2 border-t border-black/[0.04]">
               <Eye size={11} className="text-blue-500" />
-              <span className="text-[10px] text-blue-500 font-medium">Preview mavjud</span>
+              <span className="text-[10px] text-blue-500 font-medium">1-sahifa namunasi</span>
             </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="w-full h-36 rounded-2xl bg-blue-50 flex flex-col items-center justify-center gap-2 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+            <BookMarked size={40} className="text-blue-400" />
+            <span className="text-[13px] font-semibold text-blue-500">
+              {WORK_TYPE_LABELS[work.work_type] ?? work.work_type}
+            </span>
+          </div>
+        )}
 
         {/* Info card */}
         <div className="bg-white rounded-2xl p-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)] space-y-0">
