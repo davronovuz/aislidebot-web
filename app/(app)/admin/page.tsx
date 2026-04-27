@@ -349,9 +349,9 @@ function WorksPanel({ tid }: { tid: number | null }) {
               placeholder="Bu ishning qisqacha mazmuni..."
               className="w-full px-3 py-2.5 bg-black/[0.04] rounded-xl text-[14px] outline-none focus:bg-black/[0.06] resize-none" />
           </Field>
-          <Field label="Fayl (.docx yoki .pdf)">
+          <Field label="Fayl (.docx, .pdf yoki .pptx)">
             <input id="work-input" type="file"
-              accept=".docx,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
+              accept=".docx,.pdf,.pptx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation"
               onChange={e => setFile(e.target.files?.[0] || null)}
               className="w-full px-3 py-2.5 bg-black/[0.04] rounded-xl text-[13px] outline-none file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-orange-100 file:text-orange-700 file:text-[12px] file:font-semibold" />
             {file && <p className="text-[11px] text-black/40 mt-1">{file.name} — {(file.size / 1024 / 1024).toFixed(2)} MB</p>}
