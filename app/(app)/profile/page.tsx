@@ -110,6 +110,26 @@ export default function ProfilePage() {
     : (userInfo?.first_name || userInfo?.username || 'Foydalanuvchi');
   const username = user?.username ?? userInfo?.username;
 
+  if (!loading && !userInfo) {
+    return (
+      <div className="min-h-screen bg-[#F2F2F7] flex flex-col items-center justify-center px-6 text-center">
+        <div className="w-20 h-20 rounded-3xl bg-orange-50 flex items-center justify-center mb-4">
+          <span className="text-4xl">🤖</span>
+        </div>
+        <h2 className="text-[18px] font-bold text-black">Telegram orqali oching</h2>
+        <p className="text-[13px] text-black/40 mt-2 max-w-[280px] leading-relaxed">
+          Profilingizni ko&apos;rish uchun bot menyusidan <b>📊 Prezentatsiya</b> yoki <b>📝 Mustaqil ish</b> tugmasini bosing.
+        </p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-5 px-5 py-2.5 bg-orange-500 rounded-xl text-white text-[13px] font-semibold"
+        >
+          Qayta urinish
+        </button>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F2F2F7]">
