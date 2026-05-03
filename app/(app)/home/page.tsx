@@ -112,25 +112,70 @@ export default function HomePage() {
       </div>
 
       {/* Product grid */}
-      <div className="px-4 pb-6 space-y-4">
+      <div className="px-4 pb-8 space-y-5">
         {SECTIONS.map(section => {
           const products = PRODUCTS.filter(p => section.ids.includes(p.id));
           if (!products.length) return null;
+
+          // Bir mahsulotli sectionlar (Prezentatsiya, Krossvord) — full-width hero
+          if (products.length === 1) {
+            return (
+              <section key={section.label}>
+                <SectionHeading label={section.label} count={1} />
+                <HeroCard product={products[0]} onClick={() => go(products[0].id)} />
+              </section>
+            );
+          }
+
           return (
-            <div key={section.label}>
-              <p className="text-[11px] font-semibold text-black/35 uppercase tracking-wider mb-2 px-0.5">
-                {section.label}
-              </p>
+            <section key={section.label}>
+              <SectionHeading label={section.label} count={products.length} />
               <div className="grid grid-cols-2 gap-2.5">
                 {products.map(p => (
                   <ProductCard key={p.id} product={p} onClick={() => go(p.id)} />
                 ))}
               </div>
-            </div>
+            </section>
           );
         })}
       </div>
     </div>
+  );
+}
+
+function SectionHeading({ label, count }: { label: string; count: number }) {
+  return (
+    <div className="flex items-center justify-between mb-2.5 px-0.5">
+      <p className="text-[12px] font-bold text-black/55 uppercase tracking-wider">{label}</p>
+      <span className="text-[10px] font-semibold text-black/30 bg-black/5 px-2 py-0.5 rounded-full">{count}</span>
+    </div>
+  );
+}
+
+function HeroCard({
+  product,
+  onClick,
+}: {
+  product: typeof PRODUCTS[0];
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'w-full bg-white rounded-2xl p-4 text-left shadow-[0_2px_12px_rgba(0,0,0,0.06)]',
+        'active:scale-[0.98] transition-transform duration-100 flex items-center gap-3.5'
+      )}
+    >
+      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center shrink-0 shadow-inner">
+        <span className="text-[28px] leading-none">{product.icon}</span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[15px] font-bold text-black leading-tight">{product.name}</p>
+        <p className="text-[12px] text-black/40 mt-1 leading-snug">{product.desc}</p>
+      </div>
+      <ChevronRight />
+    </button>
   );
 }
 
@@ -145,17 +190,24 @@ function ProductCard({
     <button
       onClick={onClick}
       className={cn(
-        'bg-white rounded-2xl p-4 text-left shadow-[0_2px_12px_rgba(0,0,0,0.06)]',
-        'active:scale-[0.97] transition-transform duration-100 flex flex-col gap-2.5'
+        'bg-white rounded-2xl p-3.5 text-left shadow-[0_2px_12px_rgba(0,0,0,0.06)]',
+        'active:scale-[0.97] transition-transform duration-100',
+        'flex flex-col h-[132px]'
       )}
     >
-      <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-50 to-orange-100 flex items-center justify-center">
-        <span className="text-[22px]">{product.icon}</span>
+      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-50 to-orange-100 flex items-center justify-center shrink-0">
+        <span className="text-[20px] leading-none">{product.icon}</span>
       </div>
-      <div>
-        <p className="text-[13px] font-bold text-black leading-snug">{product.name}</p>
-        <p className="text-[11px] text-black/35 mt-0.5 leading-snug line-clamp-2">{product.desc}</p>
-      </div>
+      <p className="text-[13px] font-bold text-black leading-tight mt-2.5 line-clamp-1">{product.name}</p>
+      <p className="text-[11px] text-black/40 mt-1 leading-snug line-clamp-2">{product.desc}</p>
     </button>
+  );
+}
+
+function ChevronRight() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-black/25 shrink-0">
+      <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
