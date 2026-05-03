@@ -14,7 +14,11 @@ import type { Language, ProductType } from '@/types';
 
 interface PriceInfo { balance: number; pricePerPage: number; }
 
-const STEP_LABELS = ['Mavzu', 'Ma\'lumot', 'Sozlama', 'Tasdiq'];
+const STEP_LABELS_FULL = ['Mavzu', 'Ma\'lumot', 'Sozlama', 'Tasdiq'];
+const STEP_LABELS_COMPACT = ['Mavzu', 'Sozlama', 'Tasdiq'];
+
+// Krossvordda titul/talaba ma'lumoti shart emas — shu sabab "Ma'lumot" stepi yashirinadi
+const COMPACT_TYPES = new Set<string>(['krossvord']);
 
 export default function DocumentBuilder({
   productType,
@@ -25,13 +29,21 @@ export default function DocumentBuilder({
 }) {
   const router = useRouter();
   const product = PRODUCTS.find(p => p.id === productType)!;
-  // 4 bosqich: 1) Mavzu  2) Fan+Titul  3) Sozlamalar  4) Tasdiqlash
-  const TOTAL_STEPS = 4;
+  const isCompact = COMPACT_TYPES.has(productType);
+  const isCrossword = productType === 'krossvord';
+  const isThesis = productType === 'tezis';
+
+  const STEP_LABELS = isCompact ? STEP_LABELS_COMPACT : STEP_LABELS_FULL;
+  // 4 bosqich (full) yoki 3 bosqich (compact: krossvord)
+  const TOTAL_STEPS = STEP_LABELS.length;
 
   const [step, setStep] = useState(1);
   const [topic, setTopic] = useState('');
   const [subject, setSubject] = useState('');
-  const [pages, setPages] = useState(product.minPages ?? 10);
+  // Krossvord uchun "pages" aslida so'z soni (default 18)
+  const initialCount = isCrossword ? 18 : (product.minPages ?? 10);
+  const [pages, setPages] = useState(initialCount);
+  const [email, setEmail] = useState(''); // tezis uchun
   const [lang, setLang] = useState<Language>('uz');
   const [fileFormat, setFileFormat] = useState<'docx' | 'pdf'>('docx');
   const [details, setDetails] = useState('');
@@ -84,8 +96,27 @@ export default function DocumentBuilder({
     return true;
   };
 
-  const goNext = () => { if (canNext() && step < TOTAL_STEPS) { haptic('light'); setStep(s => s + 1); } };
-  const goBack = () => { if (step > 1) { haptic('light'); setStep(s => s - 1); } };
+  const goNext = () => {
+    if (!canNext() || step >= 4) return;
+    haptic('light');
+    // Krossvord (compact) — step 2 (Ma'lumot)ni o'tkazib yuboramiz
+    let next = step + 1;
+    if (isCompact && next === 2) next = 3;
+    setStep(next);
+  };
+  const goBack = () => {
+    if (step <= 1) return;
+    haptic('light');
+    let prev = step - 1;
+    if (isCompact && prev === 2) prev = 1;
+    setStep(prev);
+  };
+
+  // Header'da ko'rinadigan "n / total" raqami:
+  // Compact rejimda real step (1,3,4) ni 1,2,3 sifatida ko'rsatamiz
+  const visibleStepIndex = isCompact
+    ? (step === 1 ? 1 : step === 3 ? 2 : 3)
+    : step;
 
   const handleSend = async () => {
     haptic('success');
@@ -110,6 +141,8 @@ export default function DocumentBuilder({
       teacher_rank: teacherRank,
       university,
       faculty,
+      ...(isCrossword ? { word_count: pages } : {}),
+      ...(isThesis && email.trim() ? { email: email.trim() } : {}),
     };
 
     if (!tid) {
@@ -137,8 +170,10 @@ export default function DocumentBuilder({
   const totalPrice = (priceInfo.pricePerPage ?? 500) * pages;
   const canAfford = balance >= totalPrice;
   const selectedLang = LANGUAGES.find(l => l.id === lang);
-  const min = product.minPages ?? 5;
-  const max = product.maxPages ?? 50;
+  const min = isCrossword ? 10 : (product.minPages ?? 5);
+  const max = isCrossword ? 30 : (product.maxPages ?? 50);
+  const unitLabel = isCrossword ? "so'z" : "bet";
+  const counterTitle = isCrossword ? "So'zlar soni" : "Sahifalar soni";
 
   return (
     <div className="min-h-screen bg-[#F2F2F7] flex flex-col">
@@ -163,7 +198,7 @@ export default function DocumentBuilder({
               <span>{product.icon}</span>{product.name}
             </h1>
             <p className="text-[11px] text-black/35 mt-0.5">
-              {step}/{TOTAL_STEPS} · {STEP_LABELS[step - 1]}
+              {visibleStepIndex}/{TOTAL_STEPS} · {STEP_LABELS[visibleStepIndex - 1]}
             </p>
           </div>
           <div className="px-2.5 py-1 bg-orange-50 border border-orange-100 rounded-full">
@@ -172,7 +207,7 @@ export default function DocumentBuilder({
             </span>
           </div>
         </div>
-        <ProgressBar value={(step / TOTAL_STEPS) * 100} className="mt-3" />
+        <ProgressBar value={(visibleStepIndex / TOTAL_STEPS) * 100} className="mt-3" />
       </header>
 
       <main className="flex-1 px-4 py-5 overflow-y-auto">
@@ -198,11 +233,25 @@ export default function DocumentBuilder({
                     goNext();
                   }
                 }}
-                placeholder="Masalan: Sun'iy intellektning ta'lim sohasidagi o'rni va istiqbollari"
+                placeholder={isCrossword
+                  ? "Masalan: Inson tanasi a'zolari, Sport turlari, O'zbek milliy taomlari"
+                  : "Masalan: Sun'iy intellektning ta'lim sohasidagi o'rni va istiqbollari"
+                }
                 rows={4}
                 className="w-full text-[15px] text-black placeholder-black/20 outline-none resize-none bg-transparent leading-relaxed"
               />
             </div>
+            {isCrossword && (
+              <div className="mt-3 bg-blue-50 border border-blue-100 rounded-2xl p-3">
+                <p className="text-[11px] font-semibold text-blue-700 mb-1.5">💡 Krossvord uchun yaxshi mavzular:</p>
+                <p className="text-[11px] text-blue-600 leading-relaxed">
+                  Aniq, tor mavzular tanlang — kamida 15 ta tushunchasi bo'ladigan.
+                  Misol: <b>Hayvonlar dunyosi</b>, <b>Kompyuter qismlari</b>, <b>Geografik atamalar</b>,
+                  <b> Matematika tushunchalari</b>, <b>O'zbek taomlari</b>.
+                  Mavhum mavzu (sevgi, hayot) ishlamaydi.
+                </p>
+              </div>
+            )}
             {topic.length > 0 && topic.length < 5 && (
               <p className="text-[12px] text-orange-500 mt-2 ml-1">Kamida 5 ta belgi</p>
             )}
@@ -267,11 +316,13 @@ export default function DocumentBuilder({
         {step === 3 && (
           <div>
             <h2 className="text-[21px] font-bold text-black">Sozlamalar</h2>
-            <p className="text-[13px] text-black/40 mt-1">Sahifa soni, til va format</p>
+            <p className="text-[13px] text-black/40 mt-1">
+              {isCrossword ? "So'z soni va til" : "Sahifa soni, til va format"}
+            </p>
             <div className="mt-5 space-y-2.5">
-              {/* Pages */}
+              {/* Pages / Words */}
               <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] px-4 py-4">
-                <span className="text-[10px] font-semibold text-black/35 uppercase tracking-wider">Sahifalar soni</span>
+                <span className="text-[10px] font-semibold text-black/35 uppercase tracking-wider">{counterTitle}</span>
                 <div className="flex items-center justify-between mt-3">
                   <button
                     onClick={() => { haptic('light'); setPages(p => Math.max(min, p - 1)); }}
@@ -281,7 +332,7 @@ export default function DocumentBuilder({
                   </button>
                   <div className="text-center">
                     <span className="text-4xl font-bold text-black tabular-nums">{pages}</span>
-                    <p className="text-[10px] text-black/30 mt-0.5">{min}–{max} bet</p>
+                    <p className="text-[10px] text-black/30 mt-0.5">{min}–{max} {unitLabel}</p>
                   </div>
                   <button
                     onClick={() => { haptic('light'); setPages(p => Math.min(max, p + 1)); }}
@@ -291,6 +342,22 @@ export default function DocumentBuilder({
                   </button>
                 </div>
               </div>
+
+              {/* Email — faqat tezis uchun */}
+              {isThesis && (
+                <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] px-4 py-4">
+                  <label className="text-[10px] font-semibold text-black/35 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>📧</span>Muallif e-mail (ixtiyoriy)
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="example@gmail.com"
+                    className="w-full mt-2 text-[15px] text-black placeholder-black/20 outline-none bg-transparent"
+                  />
+                </div>
+              )}
 
               {/* Language */}
               <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] px-4 py-4">
@@ -313,27 +380,29 @@ export default function DocumentBuilder({
                 </div>
               </div>
 
-              {/* Format */}
-              <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] px-4 py-4">
-                <span className="text-[10px] font-semibold text-black/35 uppercase tracking-wider">Fayl formati</span>
-                <div className="flex gap-2 mt-2.5">
-                  {(['docx', 'pdf'] as const).map(f => (
-                    <button
-                      key={f}
-                      onClick={() => { haptic('select'); setFileFormat(f); }}
-                      className={cn(
-                        'flex-1 py-3 rounded-xl font-semibold',
-                        fileFormat === f
-                          ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md shadow-orange-200'
-                          : 'bg-black/5 text-black/50'
-                      )}
-                    >
-                      <span className="text-lg">{f === 'docx' ? '📝' : '📄'}</span>
-                      <p className="text-[13px] mt-0.5">{f.toUpperCase()}</p>
-                    </button>
-                  ))}
+              {/* Format — krossvord faqat DOCX, shu sabab yashiramiz */}
+              {!isCrossword && (
+                <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] px-4 py-4">
+                  <span className="text-[10px] font-semibold text-black/35 uppercase tracking-wider">Fayl formati</span>
+                  <div className="flex gap-2 mt-2.5">
+                    {(['docx', 'pdf'] as const).map(f => (
+                      <button
+                        key={f}
+                        onClick={() => { haptic('select'); setFileFormat(f); }}
+                        className={cn(
+                          'flex-1 py-3 rounded-xl font-semibold',
+                          fileFormat === f
+                            ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md shadow-orange-200'
+                            : 'bg-black/5 text-black/50'
+                        )}
+                      >
+                        <span className="text-lg">{f === 'docx' ? '📝' : '📄'}</span>
+                        <p className="text-[13px] mt-0.5">{f.toUpperCase()}</p>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Details */}
               <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-4">
@@ -361,14 +430,17 @@ export default function DocumentBuilder({
               {[
                 { icon: product.icon, label: 'Ish turi', value: product.name },
                 { icon: '📚', label: 'Mavzu', value: topic },
-                subject && { icon: '📖', label: 'Fan', value: subject },
-                university && { icon: '🏛', label: 'Universitet', value: university },
-                faculty && { icon: '🏫', label: 'Fakultet', value: faculty },
-                studentName && { icon: '👤', label: 'Talaba', value: `${studentName}${studentGroup ? ` (${studentGroup})` : ''}` },
-                teacherName && { icon: '👨‍🏫', label: 'Rahbar', value: `${teacherRank ? teacherRank + ' ' : ''}${teacherName}` },
-                { icon: '📄', label: 'Sahifalar', value: `${pages} ta` },
+                !isCrossword && subject && { icon: '📖', label: 'Fan', value: subject },
+                !isCompact && university && { icon: '🏛', label: 'Universitet', value: university },
+                !isCompact && faculty && { icon: '🏫', label: 'Fakultet', value: faculty },
+                !isCompact && studentName && { icon: '👤', label: 'Talaba', value: `${studentName}${studentGroup ? ` (${studentGroup})` : ''}` },
+                !isCompact && teacherName && { icon: '👨‍🏫', label: 'Rahbar', value: `${teacherRank ? teacherRank + ' ' : ''}${teacherName}` },
+                isThesis && email && { icon: '📧', label: 'E-mail', value: email },
+                isCrossword
+                  ? { icon: '🔤', label: "So'zlar", value: `~${pages} ta` }
+                  : { icon: '📄', label: 'Sahifalar', value: `${pages} ta` },
                 { icon: selectedLang?.flag, label: 'Til', value: selectedLang?.label },
-                { icon: fileFormat === 'docx' ? '📝' : '📄', label: 'Format', value: fileFormat.toUpperCase() },
+                !isCrossword && { icon: fileFormat === 'docx' ? '📝' : '📄', label: 'Format', value: fileFormat.toUpperCase() },
               ].filter(Boolean).map((row, i, arr) => row && (
                 <div key={i} className={cn('px-4 py-3.5 flex items-start gap-3', i < arr.length - 1 && 'border-b border-black/5')}>
                   <span className="text-base mt-0.5">{row.icon}</span>
@@ -403,7 +475,7 @@ export default function DocumentBuilder({
               <ChevronLeft size={20} className="text-black/50" />
             </button>
           )}
-          {step < TOTAL_STEPS ? (
+          {step < 4 ? (
             <Button variant="primary" className="flex-1 h-[52px]" disabled={!canNext()} onClick={goNext}>
               Davom etish <ChevronRight size={16} />
             </Button>

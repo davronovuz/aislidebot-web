@@ -63,6 +63,8 @@ export const api = {
     teacher_rank?: string;
     university?: string;
     faculty?: string;
+    word_count?: number;  // krossvord uchun
+    email?: string;       // tezis uchun
   }) => call<SubmitResult>('submit-presentation', { ...data, type: 'document' }),
 
   getTaskStatus: (uuid: string) =>
