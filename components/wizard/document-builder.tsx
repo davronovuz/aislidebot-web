@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Minus, Plus, GraduationCap, Sparkles, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Minus, Plus, Sparkles, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProgressBar } from '@/components/shared/progress-bar';
 import { PriceCard } from '@/components/shared/price-card';
@@ -14,6 +14,8 @@ import type { Language, ProductType } from '@/types';
 
 interface PriceInfo { balance: number; pricePerPage: number; }
 
+const STEP_LABELS = ['Mavzu', 'Ma\'lumot', 'Sozlama', 'Tasdiq'];
+
 export default function DocumentBuilder({
   productType,
   priceInfo,
@@ -23,7 +25,8 @@ export default function DocumentBuilder({
 }) {
   const router = useRouter();
   const product = PRODUCTS.find(p => p.id === productType)!;
-  const TOTAL_STEPS = 6;
+  // 4 bosqich: 1) Mavzu  2) Fan+Titul  3) Sozlamalar  4) Tasdiqlash
+  const TOTAL_STEPS = 4;
 
   const [step, setStep] = useState(1);
   const [topic, setTopic] = useState('');
@@ -70,14 +73,14 @@ export default function DocumentBuilder({
 
   useEffect(() => {
     const t = setTimeout(() => {
-      if (step === 2) topicRef.current?.focus();
-      if (step === 3) subjectRef.current?.focus();
+      if (step === 1) topicRef.current?.focus();
+      if (step === 2) subjectRef.current?.focus();
     }, 350);
     return () => clearTimeout(t);
   }, [step]);
 
   const canNext = () => {
-    if (step === 2) return topic.trim().length >= 5;
+    if (step === 1) return topic.trim().length >= 5;
     return true;
   };
 
@@ -143,20 +146,30 @@ export default function DocumentBuilder({
       <header className="bg-white px-4 pt-4 pb-3 border-b border-black/5 flex-shrink-0">
         <div className="flex items-center gap-3">
           {step > 1 ? (
-            <button onClick={goBack} className="w-9 h-9 rounded-xl bg-black/5 flex items-center justify-center">
+            <button onClick={goBack} className="w-9 h-9 rounded-xl bg-black/5 flex items-center justify-center" aria-label="Orqaga">
               <ChevronLeft size={20} className="text-black/60" />
             </button>
           ) : (
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-200">
-              <GraduationCap size={16} className="text-white" />
-            </div>
+            <button
+              onClick={() => { haptic('light'); router.push('/home'); }}
+              className="w-9 h-9 rounded-xl bg-black/5 flex items-center justify-center"
+              aria-label="Ish turini o'zgartirish"
+            >
+              <ChevronLeft size={20} className="text-black/60" />
+            </button>
           )}
-          <div className="flex-1">
-            <h1 className="text-[16px] font-bold text-black">{product.name} yaratish</h1>
-            <p className="text-[11px] text-black/35 mt-0.5">Bosqich {step} / {TOTAL_STEPS}</p>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-[15px] font-bold text-black truncate flex items-center gap-1.5">
+              <span>{product.icon}</span>{product.name}
+            </h1>
+            <p className="text-[11px] text-black/35 mt-0.5">
+              {step}/{TOTAL_STEPS} · {STEP_LABELS[step - 1]}
+            </p>
           </div>
-          <div className="px-3 py-1.5 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full">
-            <span className="text-white text-[10px] font-bold">{(priceInfo.pricePerPage ?? 500).toLocaleString()} / bet</span>
+          <div className="px-2.5 py-1 bg-orange-50 border border-orange-100 rounded-full">
+            <span className="text-orange-600 text-[10px] font-bold">
+              {(priceInfo.pricePerPage ?? 500).toLocaleString()} <span className="opacity-60">so&apos;m/bet</span>
+            </span>
           </div>
         </div>
         <ProgressBar value={(step / TOTAL_STEPS) * 100} className="mt-3" />
@@ -164,40 +177,27 @@ export default function DocumentBuilder({
 
       <main className="flex-1 px-4 py-5 overflow-y-auto">
 
-        {/* Step 1: Work type info */}
+        {/* Step 1: Topic (asosiy) */}
         {step === 1 && (
           <div>
-            <h2 className="text-[21px] font-bold text-black">{product.name}</h2>
-            <p className="text-[13px] text-black/40 mt-1">{product.desc}</p>
-            <div className="mt-5 space-y-3">
-              <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-4">
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl">{product.icon}</span>
-                  <div>
-                    <p className="text-[15px] font-bold text-black">{product.name}</p>
-                    <p className="text-[12px] text-black/40">{min}–{max} sahifa</p>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-orange-50 border border-orange-100 rounded-2xl px-4 py-3">
-                <p className="text-[11px] text-orange-600 leading-relaxed">
-                  ⚡ AI sizning mavzungiz bo&apos;yicha to&apos;liq professional ish yozadi. O&apos;zbek GOST standartida formatlanadi.
-                </p>
+            <div className="flex items-center gap-2.5">
+              <span className="text-2xl">{product.icon}</span>
+              <div>
+                <h2 className="text-[20px] font-bold text-black leading-tight">Mavzu</h2>
+                <p className="text-[11px] text-black/40 mt-0.5">{product.name} mavzusini yozing</p>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Step 2: Topic */}
-        {step === 2 && (
-          <div>
-            <h2 className="text-[21px] font-bold text-black">Mavzuni yozing</h2>
-            <p className="text-[13px] text-black/40 mt-1">{product.name} mavzusini kiriting</p>
-            <div className="mt-5 bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-4">
+            <div className="mt-4 bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-4">
               <textarea
                 ref={topicRef}
                 value={topic}
                 onChange={e => setTopic(e.target.value)}
+                onKeyDown={e => {
+                  if ((e.key === 'Enter') && (e.ctrlKey || e.metaKey) && canNext()) {
+                    e.preventDefault();
+                    goNext();
+                  }
+                }}
                 placeholder="Masalan: Sun'iy intellektning ta'lim sohasidagi o'rni va istiqbollari"
                 rows={4}
                 className="w-full text-[15px] text-black placeholder-black/20 outline-none resize-none bg-transparent leading-relaxed"
@@ -208,53 +208,45 @@ export default function DocumentBuilder({
             )}
             {topic.length >= 5 && (
               <p className="text-[12px] text-green-500 mt-2 ml-1 flex items-center gap-1">
-                <Check size={14} /> Tayyor
+                <Check size={14} /> Tayyor — pastdan davom eting
               </p>
             )}
           </div>
         )}
 
-        {/* Step 3: Subject */}
-        {step === 3 && (
+        {/* Step 2: Fan + Titul (birlashtirilgan, hammasi ixtiyoriy) */}
+        {step === 2 && (
           <div>
-            <h2 className="text-[21px] font-bold text-black">Fan nomini yozing</h2>
-            <p className="text-[13px] text-black/40 mt-1">Ixtiyoriy — o&apos;tkazib yuborishingiz mumkin</p>
-            <div className="mt-5 bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-4">
+            <h2 className="text-[20px] font-bold text-black">Qo&apos;shimcha ma&apos;lumot</h2>
+            <p className="text-[11px] text-black/40 mt-0.5">Hammasi ixtiyoriy — to&apos;ldirsangiz titul sahifaga chiqadi</p>
+
+            <div className="mt-4 bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-4">
+              <label className="text-[10px] font-semibold text-black/35 uppercase tracking-wider flex items-center gap-1.5">
+                <span>📖</span>Fan nomi
+              </label>
               <input
                 ref={subjectRef}
                 type="text"
                 value={subject}
                 onChange={e => setSubject(e.target.value)}
                 placeholder="Masalan: Informatika"
-                className="w-full text-[16px] text-black placeholder-black/20 outline-none bg-transparent"
+                className="w-full mt-2 text-[15px] text-black placeholder-black/20 outline-none bg-transparent"
               />
             </div>
-            {subject.trim().length === 0 && (
-              <button
-                onClick={() => { haptic('light'); setStep(4); }}
-                className="mt-3 w-full py-3 rounded-2xl bg-black/5 text-[13px] font-medium text-black/40"
-              >
-                O&apos;tkazib yuborish
-              </button>
-            )}
-          </div>
-        )}
 
-        {/* Step 4: Title page */}
-        {step === 4 && (
-          <div>
-            <h2 className="text-[21px] font-bold text-black">Titul sahifa</h2>
-            <p className="text-[13px] text-black/40 mt-1">Ixtiyoriy — bo&apos;sh qoldirsangiz ham bo&apos;ladi</p>
-            <div className="mt-5 space-y-2.5">
+            <p className="text-[10px] font-semibold text-black/35 uppercase tracking-wider mt-5 mb-2 px-1">
+              Titul sahifa uchun
+            </p>
+            <div className="space-y-2.5">
               {[
-                { label: 'Universitet nomi', icon: '🏛', value: university, onChange: setUniversity, placeholder: 'Masalan: TATU' },
+                { label: 'Universitet', icon: '🏛', value: university, onChange: setUniversity, placeholder: 'Masalan: TATU' },
                 { label: 'Fakultet', icon: '🏫', value: faculty, onChange: setFaculty, placeholder: 'Masalan: Kompyuter injiniringi' },
                 { label: 'Talaba F.I.O.', icon: '👤', value: studentName, onChange: setStudentName, placeholder: 'Masalan: Karimov Jasur' },
                 { label: 'Guruh', icon: '👥', value: studentGroup, onChange: setStudentGroup, placeholder: 'Masalan: 210-22' },
-                { label: 'Ilmiy rahbar F.I.O.', icon: '👨‍🏫', value: teacherName, onChange: setTeacherName, placeholder: 'Masalan: Rahimov A.B.' },
-                { label: 'Rahbar darajasi', icon: '🎖', value: teacherRank, onChange: setTeacherRank, placeholder: 'Masalan: dots., prof., PhD' },
+                { label: 'Rahbar F.I.O.', icon: '👨‍🏫', value: teacherName, onChange: setTeacherName, placeholder: 'Masalan: Rahimov A.B.' },
+                { label: 'Rahbar darajasi', icon: '🎖', value: teacherRank, onChange: setTeacherRank, placeholder: 'Masalan: PhD, dots.' },
               ].map(f => (
-                <div key={f.label} className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-4">
+                <div key={f.label} className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-3.5">
                   <label className="text-[10px] font-semibold text-black/35 uppercase tracking-wider flex items-center gap-1.5">
                     <span>{f.icon}</span>{f.label}
                   </label>
@@ -263,7 +255,7 @@ export default function DocumentBuilder({
                     value={f.value}
                     onChange={e => f.onChange(e.target.value)}
                     placeholder={f.placeholder}
-                    className="w-full mt-2 text-[15px] text-black placeholder-black/20 outline-none bg-transparent"
+                    className="w-full mt-1.5 text-[14px] text-black placeholder-black/20 outline-none bg-transparent"
                   />
                 </div>
               ))}
@@ -271,8 +263,8 @@ export default function DocumentBuilder({
           </div>
         )}
 
-        {/* Step 5: Settings */}
-        {step === 5 && (
+        {/* Step 3: Settings */}
+        {step === 3 && (
           <div>
             <h2 className="text-[21px] font-bold text-black">Sozlamalar</h2>
             <p className="text-[13px] text-black/40 mt-1">Sahifa soni, til va format</p>
@@ -360,8 +352,8 @@ export default function DocumentBuilder({
           </div>
         )}
 
-        {/* Step 6: Confirm */}
-        {step === 6 && (
+        {/* Step 4: Confirm */}
+        {step === 4 && (
           <div>
             <h2 className="text-[21px] font-bold text-black">Tasdiqlash</h2>
             <p className="text-[13px] text-black/40 mt-1">Tekshiring va yuboring</p>
