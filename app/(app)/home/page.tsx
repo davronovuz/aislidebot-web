@@ -22,7 +22,19 @@ const SECTIONS = [
   },
   {
     label: 'Ilmiy ishlar',
-    ids: ['mustaqil_ish', 'referat', 'kurs_ishi', 'diplom', 'magistr', 'tezis', 'ilmiy_maqola'],
+    ids: [
+      'mustaqil_ish',
+      'referat',
+      'kurs_ishi',
+      'diplom_ishi',
+      'magistr_diss',
+      'tezis',
+      'ilmiy_maqola',
+    ],
+  },
+  {
+    label: 'Amaliy va hisobot',
+    ids: ['laboratoriya_ishi', 'amaliy_ish', 'hisobot'],
   },
   {
     label: 'Ijodiy',
