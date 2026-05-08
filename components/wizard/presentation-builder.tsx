@@ -10,7 +10,7 @@ import { THEMES, LANGUAGES } from '@/lib/constants';
 import { getTelegramId, getTelegramWebApp, haptic, getSourceParam } from '@/lib/telegram';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import type { Slide, PresentationOutline, Language } from '@/types';
+import type { Slide, PresentationOutline, Language, PremiumTemplate } from '@/types';
 
 interface PriceInfo {
   balance: number;
@@ -35,6 +35,9 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
   const [slideCount, setSlideCount] = useState(10);
   const [themeId, setThemeId] = useState('blues');
   const [lang, setLang] = useState<Language>('uz');
+  // Premium template (manifest.json'dagi designer .pptx). null bo'lsa code-gen + theme.
+  const [templateFile, setTemplateFile] = useState<string | null>(null);
+  const [premiumTemplates, setPremiumTemplates] = useState<PremiumTemplate[]>([]);
 
   // Generation state
   const [outline, setOutline] = useState<PresentationOutline | null>(null);
@@ -93,6 +96,16 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
       bottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [slides, genIndex, phase]);
+
+  // Premium shablonlarni yuklash (manifest.json)
+  useEffect(() => {
+    fetch('/api/premium-templates')
+      .then(r => r.json())
+      .then(d => {
+        if (d.ok && Array.isArray(d.templates)) setPremiumTemplates(d.templates);
+      })
+      .catch(() => {});
+  }, []);
 
   // ── Generation ──
   const startGeneration = useCallback(async () => {
@@ -182,6 +195,7 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
         details: details || '',
         slide_count: slides.length,
         theme_id: themeId,
+        template_file: templateFile,  // premium tanlangan bo'lsa designer .pptx
         language: lang,
         pre_generated: true,
         title: outline?.title ?? topic,
@@ -219,7 +233,7 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
       }
       setSendError(msg || 'Xatolik yuz berdi');
     }
-  }, [slides, outline, topic, details, themeId, lang, router]);
+  }, [slides, outline, topic, details, themeId, templateFile, lang, router]);
 
   // ───────────────────────────────────────
   // INPUT PHASE
@@ -348,28 +362,69 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
             </div>
           </div>
 
-          {/* Theme */}
-          <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] px-4 py-4">
-            <span className="text-[10px] font-semibold text-black/35 uppercase tracking-wider">Dizayn</span>
-            <div className="grid grid-cols-4 gap-2 mt-2.5">
-              {THEMES.map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => { haptic('select'); setThemeId(t.id); }}
-                  className={cn(
-                    'flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all',
-                    themeId === t.id ? 'bg-orange-50 ring-2 ring-orange-400' : 'hover:bg-black/5'
-                  )}
-                >
-                  <div
-                    className="w-10 h-7 rounded-lg shadow-sm"
-                    style={{ background: t.titleBg }}
-                  />
-                  <span className="text-[9px] font-medium text-black/50 text-center leading-tight">{t.name}</span>
-                </button>
-              ))}
+          {/* Premium shablonlar (manifest) */}
+          {premiumTemplates.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] px-4 py-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold text-black/35 uppercase tracking-wider">Shablon</span>
+                {templateFile && (
+                  <button
+                    onClick={() => { haptic('select'); setTemplateFile(null); }}
+                    className="text-[10px] text-orange-500 font-semibold"
+                  >
+                    Tozalash
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-2.5">
+                {premiumTemplates.map(t => (
+                  <button
+                    key={t.file}
+                    onClick={() => { haptic('select'); setTemplateFile(t.file); }}
+                    className={cn(
+                      'flex items-center gap-2 p-3 rounded-xl text-left transition-all',
+                      templateFile === t.file
+                        ? 'bg-orange-50 ring-2 ring-orange-400'
+                        : 'bg-black/[0.03] hover:bg-black/5'
+                    )}
+                  >
+                    <span className="text-2xl">{t.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[12px] font-semibold text-black truncate">{t.name}</div>
+                      <div className="text-[10px] text-black/40 truncate">
+                        {t.is_premium ? `Premium · ${t.bullets_per_slide.join('+')} bullet` : 'Klassik'}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Theme — agar premium tanlanmagan bo'lsa */}
+          {!templateFile && (
+            <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] px-4 py-4">
+              <span className="text-[10px] font-semibold text-black/35 uppercase tracking-wider">Dizayn rangi</span>
+              <div className="grid grid-cols-4 gap-2 mt-2.5">
+                {THEMES.map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => { haptic('select'); setThemeId(t.id); }}
+                    className={cn(
+                      'flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all',
+                      themeId === t.id ? 'bg-orange-50 ring-2 ring-orange-400' : 'hover:bg-black/5'
+                    )}
+                  >
+                    <div
+                      className="w-10 h-7 rounded-lg shadow-sm"
+                      style={{ background: t.titleBg }}
+                    />
+                    <span className="text-[9px] font-medium text-black/50 text-center leading-tight">{t.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Narx */}
           {balanceLoaded ? (

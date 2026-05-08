@@ -186,6 +186,17 @@ export interface Theme {
   preview?: string;
 }
 
+// ─── Premium Templates (manifest-backed, designer .pptx) ─────────────────────
+
+export interface PremiumTemplate {
+  file: string;          // "simple_professional.pptx"
+  name: string;          // "Simple Professional"
+  description: string;
+  emoji: string;
+  is_premium: boolean;   // true → TemplateInjector (designer slidelar), false → HybridGenerator
+  bullets_per_slide: number[];
+}
+
 // ─── Languages ────────────────────────────────────────────────────────────────
 
 export type Language = 'uz' | 'ru' | 'en';
