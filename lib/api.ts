@@ -40,6 +40,7 @@ export const api = {
     slide_count: number;
     theme_id: string;
     template_file?: string | null;
+    student_name?: string;
     language: string;
     pre_generated: boolean;
     title: string;

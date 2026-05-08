@@ -38,6 +38,8 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
   // Premium template (manifest.json'dagi designer .pptx). null bo'lsa code-gen + theme.
   const [templateFile, setTemplateFile] = useState<string | null>(null);
   const [premiumTemplates, setPremiumTemplates] = useState<PremiumTemplate[]>([]);
+  // Ixtiyoriy: ism/familiya — title slaydga signature
+  const [studentName, setStudentName] = useState('');
 
   // Generation state
   const [outline, setOutline] = useState<PresentationOutline | null>(null);
@@ -196,6 +198,7 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
         slide_count: slides.length,
         theme_id: themeId,
         template_file: templateFile,  // premium tanlangan bo'lsa designer .pptx
+        student_name: studentName.trim() || undefined,  // ixtiyoriy
         language: lang,
         pre_generated: true,
         title: outline?.title ?? topic,
@@ -233,7 +236,7 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
       }
       setSendError(msg || 'Xatolik yuz berdi');
     }
-  }, [slides, outline, topic, details, themeId, templateFile, lang, router]);
+  }, [slides, outline, topic, details, themeId, templateFile, studentName, lang, router]);
 
   // ───────────────────────────────────────
   // INPUT PHASE
@@ -339,6 +342,23 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
                 <Plus size={18} className="text-white" />
               </button>
             </div>
+          </div>
+
+          {/* Ism familiya — ixtiyoriy */}
+          <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] px-4 py-4">
+            <span className="text-[10px] font-semibold text-black/35 uppercase tracking-wider">
+              Ism familiya <span className="text-black/30 normal-case font-normal">(ixtiyoriy)</span>
+            </span>
+            <input
+              value={studentName}
+              onChange={e => setStudentName(e.target.value)}
+              placeholder="Masalan: Davron Davronov"
+              maxLength={60}
+              className="w-full mt-2 text-[14px] text-black placeholder-black/20 outline-none bg-transparent"
+            />
+            <p className="text-[10px] text-black/30 mt-1">
+              Kiritilsa, birinchi slaydning past o'ng burchagiga signature qilib qo'shiladi
+            </p>
           </div>
 
           {/* Til */}
