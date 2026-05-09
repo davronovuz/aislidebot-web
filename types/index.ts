@@ -195,6 +195,7 @@ export interface PremiumTemplate {
   emoji: string;
   is_premium: boolean;   // true → TemplateInjector (designer slidelar), false → HybridGenerator
   bullets_per_slide: number[];
+  preview_slides?: string[]; // ["/template-previews/<file>/slide-1.png", ...]
 }
 
 // ─── Languages ────────────────────────────────────────────────────────────────

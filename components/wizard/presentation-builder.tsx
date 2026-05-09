@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ProgressBar } from '@/components/shared/progress-bar';
 import { PriceCard } from '@/components/shared/price-card';
 import { THEMES, LANGUAGES } from '@/lib/constants';
+import { TemplateGallery } from '@/components/templates/template-gallery';
 import { getTelegramId, getTelegramWebApp, haptic, getSourceParam } from '@/lib/telegram';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -382,11 +383,16 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
             </div>
           </div>
 
-          {/* Premium shablonlar (manifest) */}
+          {/* Premium shablonlar (interaktiv galereya — live preview, fullscreen modal) */}
           {premiumTemplates.length > 0 && (
             <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] px-4 py-4">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-semibold text-black/35 uppercase tracking-wider">Shablon</span>
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <span className="text-[10px] font-semibold text-black/35 uppercase tracking-wider">Shablon</span>
+                  <div className="text-[11px] text-black/45 mt-0.5">
+                    Hover qiling yoki bosib oching — slaydlarni ko'ring
+                  </div>
+                </div>
                 {templateFile && (
                   <button
                     onClick={() => { haptic('select'); setTemplateFile(null); }}
@@ -396,28 +402,12 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
                   </button>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-2 mt-2.5">
-                {premiumTemplates.map(t => (
-                  <button
-                    key={t.file}
-                    onClick={() => { haptic('select'); setTemplateFile(t.file); }}
-                    className={cn(
-                      'flex items-center gap-2 p-3 rounded-xl text-left transition-all',
-                      templateFile === t.file
-                        ? 'bg-orange-50 ring-2 ring-orange-400'
-                        : 'bg-black/[0.03] hover:bg-black/5'
-                    )}
-                  >
-                    <span className="text-2xl">{t.emoji}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[12px] font-semibold text-black truncate">{t.name}</div>
-                      <div className="text-[10px] text-black/40 truncate">
-                        {t.is_premium ? `Premium · ${t.bullets_per_slide.join('+')} bullet` : 'Klassik'}
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
+              <TemplateGallery
+                templates={premiumTemplates}
+                selectedFile={templateFile}
+                onSelect={setTemplateFile}
+                onHaptic={() => haptic('select')}
+              />
             </div>
           )}
 
