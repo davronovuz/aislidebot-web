@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { PRODUCTS } from '@/lib/constants';
 import { getTelegramId, getTelegramWebApp, haptic } from '@/lib/telegram';
 import { cn } from '@/lib/utils';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 interface UserInfo {
   balance: number;
@@ -43,6 +45,8 @@ const SECTIONS = [
 ];
 
 export default function HomePage() {
+  const t      = useTranslations('home');
+  const tCommon = useTranslations('common');
   const tg     = useRef(getTelegramWebApp());
   const tid    = useRef(getTelegramId());
   const router = useRouter();
@@ -84,21 +88,23 @@ export default function HomePage() {
 
       {/* Header */}
       <div className="px-4 pt-5 pb-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[11px] text-black/35 font-medium">Assalomu alaykum 👋</p>
-            <h1 className="text-[22px] font-bold text-black mt-0.5">
-              {user?.first_name ?? info?.first_name ?? info?.username ?? 'Foydalanuvchi'}
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-black/35 font-medium">{t('title')} 👋</p>
+            <h1 className="text-[22px] font-bold text-black mt-0.5 truncate">
+              {user?.first_name ?? info?.first_name ?? info?.username ?? t('profile')}
             </h1>
           </div>
+
+          <LanguageSwitcher />
 
           {/* Balance pill */}
           {info && (
             <div className="bg-white rounded-2xl px-3.5 py-2.5 shadow-[0_2px_12px_rgba(0,0,0,0.07)] text-right">
-              <p className="text-[9px] text-black/30 font-semibold uppercase tracking-wide">Balans</p>
+              <p className="text-[9px] text-black/30 font-semibold uppercase tracking-wide">{tCommon('balance')}</p>
               <p className="text-[17px] font-bold text-black leading-tight">
                 {info.balance.toLocaleString()}
-                <span className="text-[10px] text-black/30 ml-0.5">so'm</span>
+                <span className="text-[10px] text-black/30 ml-0.5">{tCommon('soum')}</span>
               </p>
             </div>
           )}
@@ -106,8 +112,8 @@ export default function HomePage() {
 
         {/* Tagline */}
         <div className="mt-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl px-4 py-3 shadow-md shadow-orange-200">
-          <p className="text-white text-[14px] font-semibold">Nima yaratamiz bugun? ✨</p>
-          <p className="text-orange-100 text-[11px] mt-0.5">Quyidan tanlang — AI qolganini qiladi</p>
+          <p className="text-white text-[14px] font-semibold">{t('subtitle')} ✨</p>
+          <p className="text-orange-100 text-[11px] mt-0.5">{t('presentation_desc')}</p>
         </div>
       </div>
 
