@@ -51,11 +51,12 @@ const PROVIDERS: Provider[] = [
 
 const clients = new Map<string, OpenAI>();
 
-// O'lik provayder cooldown'i: kvota/limit xatosi bergan provayder 10 daqiqa
-// o'tkazib yuboriladi — har so'rovda o'lik OpenAI'ga urinib vaqt yo'qotmaymiz.
-// (Module-level: warm lambda instansiyalari orasida saqlanadi.)
+// O'lik provayder cooldown'i (module-level: warm lambda'lar orasida saqlanadi).
+// Muhim farq: 401/403 (kalit o'lik) — uzoq; 429 (rate limit, ko'pincha
+// daqiqalik) — qisqa; 5xx (transient) — umuman cooldown YO'Q.
 const deadUntil = new Map<string, number>();
-const COOLDOWN_MS = 10 * 60 * 1000;
+const AUTH_COOLDOWN_MS = 30 * 60 * 1000; // 401/403 — kalit/kvota o'lik
+const RATE_COOLDOWN_MS = 75 * 1000;      // 429 — odatda 1 daqiqada tiklanadi
 
 function getClient(p: Provider, apiKey: string): OpenAI {
   const key = `${p.name}`;
@@ -66,9 +67,8 @@ function getClient(p: Provider, apiKey: string): OpenAI {
   return clients.get(key)!;
 }
 
-function isQuotaError(err: unknown): boolean {
-  const status = (err as { status?: number })?.status;
-  return status === 429 || status === 401 || status === 403;
+function errStatus(err: unknown): number {
+  return (err as { status?: number })?.status ?? 0;
 }
 
 function stripJsonFences(text: string): string {
@@ -87,36 +87,48 @@ export interface LlmChatParams {
  * Provayder zanjiri bo'ylab chat so'rovi. Muvaffaqiyatli birinchi javob matnini qaytaradi.
  * jsonMode=true bo'lsa natija toza JSON string bo'lishi kafolatlanadi (fence'lar tozalanadi).
  */
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
 export async function llmChat({ messages, maxTokens = 2500, temperature = 0.6, jsonMode = false }: LlmChatParams): Promise<string> {
   let lastError: unknown = null;
 
-  for (const p of PROVIDERS) {
-    const apiKey = process.env[p.envKey]?.trim();
-    if (!apiKey) continue;
-    const dead = deadUntil.get(p.name);
-    if (dead && Date.now() < dead) continue;
+  // 3 pass: transient xatolar (503 high demand, daqiqalik 429) bir necha
+  // sekunddan keyin o'tib ketadi — butun so'rovni yiqitmasdan qayta urinamiz.
+  for (let pass = 0; pass < 3; pass++) {
+    if (pass > 0) await sleep(pass === 1 ? 2500 : 5000);
 
-    try {
-      const client = getClient(p, apiKey);
-      const response = await client.chat.completions.create({
-        model: p.model,
-        messages,
-        max_tokens: maxTokens,
-        temperature,
-        ...(jsonMode && p.supportsJsonMode ? { response_format: { type: 'json_object' } } : {}),
-      });
-      let content = response.choices[0]?.message?.content ?? '';
-      if (!content.trim()) throw new Error('empty response');
-      if (jsonMode && !p.supportsJsonMode) content = stripJsonFences(content);
-      if (jsonMode) JSON.parse(content); // validatsiya — buzuq JSON bo'lsa keyingi provayderga
-      if (p.name !== 'openai') console.warn(`[LLM] Zahira provayder ishlatildi: ${p.name} (${p.model})`);
-      return content;
-    } catch (err) {
-      lastError = err;
-      if (isQuotaError(err)) {
-        deadUntil.set(p.name, Date.now() + COOLDOWN_MS);
+    for (const p of PROVIDERS) {
+      const apiKey = process.env[p.envKey]?.trim();
+      if (!apiKey) continue;
+      const dead = deadUntil.get(p.name);
+      if (dead && Date.now() < dead) continue;
+
+      try {
+        const client = getClient(p, apiKey);
+        const response = await client.chat.completions.create({
+          model: p.model,
+          messages,
+          max_tokens: maxTokens,
+          temperature,
+          ...(jsonMode && p.supportsJsonMode ? { response_format: { type: 'json_object' } } : {}),
+        });
+        let content = response.choices[0]?.message?.content ?? '';
+        if (!content.trim()) throw new Error('empty response');
+        if (jsonMode && !p.supportsJsonMode) content = stripJsonFences(content);
+        if (jsonMode) JSON.parse(content); // validatsiya — buzuq JSON bo'lsa keyingi provayderga
+        if (p.name !== 'openai') console.warn(`[LLM] Zahira provayder ishlatildi: ${p.name} (${p.model})`);
+        return content;
+      } catch (err) {
+        lastError = err;
+        const status = errStatus(err);
+        if (status === 401 || status === 403) {
+          deadUntil.set(p.name, Date.now() + AUTH_COOLDOWN_MS);
+        } else if (status === 429) {
+          deadUntil.set(p.name, Date.now() + RATE_COOLDOWN_MS);
+        }
+        // 5xx — cooldown yo'q: keyingi pass'da yana urinamiz
+        console.warn(`[LLM] ${p.name} xato (pass ${pass + 1}): ${(err as Error).message?.slice(0, 150)}`);
       }
-      console.warn(`[LLM] ${p.name} xato: ${(err as Error).message?.slice(0, 200)} — keyingisiga o'tamiz`);
     }
   }
 

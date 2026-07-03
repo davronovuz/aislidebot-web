@@ -129,26 +129,35 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
 
       for (let i = 0; i < outlineData.slides.length; i++) {
         setGenIndex(i);
-        const slideData = await api.generateSlide({
-          topic,
-          slideTitle: outlineData.slides[i].title,
-          slideNumber: i + 1,
-          totalSlides: outlineData.slides.length,
-          language: lang,
-          keyPoints: outlineData.slides[i].key_points,
-          presentationTitle: outlineData.title,
-        });
+        try {
+          const slideData = await api.generateSlide({
+            topic,
+            slideTitle: outlineData.slides[i].title,
+            slideNumber: i + 1,
+            totalSlides: outlineData.slides.length,
+            language: lang,
+            keyPoints: outlineData.slides[i].key_points,
+            presentationTitle: outlineData.title,
+          });
 
-        setSlides(prev => prev.map((s, idx) =>
-          idx === i ? { ...s, ...slideData, status: 'content' as const } : s
-        ));
+          setSlides(prev => prev.map((s, idx) =>
+            idx === i ? { ...s, ...slideData, status: 'content' as const } : s
+          ));
 
-        if (slideData.image_keywords) {
-          api.fetchImage(slideData.image_keywords)
-            .then(img => setSlides(prev => prev.map((s, idx) =>
-              idx === i ? { ...s, image: img, status: 'ready' as const } : s
-            )))
-            .catch(() => {});
+          if (slideData.image_keywords) {
+            api.fetchImage(slideData.image_keywords)
+              .then(img => setSlides(prev => prev.map((s, idx) =>
+                idx === i ? { ...s, image: img, status: 'ready' as const } : s
+              )))
+              .catch(() => {});
+          }
+        } catch {
+          // Bitta slayd yiqilsa jarayon TO'XTAMAYDI — slayd error holatida
+          // qoladi, foydalanuvchi ✏️ orqali qayta yaratadi
+          setSlides(prev => prev.map((s, idx) =>
+            idx === i ? { ...s, status: 'error' as const } : s
+          ));
+          haptic('error');
         }
       }
 
