@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
-
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+import { llmChat } from '@/lib/llm';
 
 const LANG_MAP: Record<string, string> = {
   uz: "O'zbek tilida yozing",
@@ -18,8 +16,10 @@ export async function POST(req: NextRequest) {
 
     const langInstruction = LANG_MAP[language] ?? LANG_MAP.uz;
 
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
+    const raw = await llmChat({
+      jsonMode: true,
+      maxTokens: 2500,
+      temperature: 0.5,
       messages: [
         {
           role: 'system',
@@ -58,12 +58,9 @@ RULES:
 Create exactly ${slideCount} slides.`,
         },
       ],
-      max_tokens: 2500,
-      temperature: 0.5,
-      response_format: { type: 'json_object' },
     });
 
-    const content = JSON.parse(response.choices[0].message.content ?? '{}');
+    const content = JSON.parse(raw);
     return NextResponse.json(content);
   } catch (err) {
     console.error('generate-outline error:', err);

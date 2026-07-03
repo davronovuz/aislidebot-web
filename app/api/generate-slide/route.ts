@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
-
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+import { llmChat } from '@/lib/llm';
 
 const LANG_MAP: Record<string, string> = {
   uz: "O'zbek tilida",
@@ -26,8 +24,10 @@ export async function POST(req: NextRequest) {
     if (isIntro) slideRole = 'the OPENING slide — hook the audience, explain why this topic matters';
     if (isConclusion) slideRole = 'the CLOSING slide — summarize insights, actionable takeaways, strong statement';
 
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
+    const raw = await llmChat({
+      jsonMode: true,
+      maxTokens: 2000,
+      temperature: 0.6,
       messages: [
         {
           role: 'system',
@@ -66,12 +66,9 @@ RULES:
 - image primary: REAL photo scene directly for "${slideTitle}" — NOT "technology" or "business"`,
         },
       ],
-      max_tokens: 2000,
-      temperature: 0.6,
-      response_format: { type: 'json_object' },
     });
 
-    const content = JSON.parse(response.choices[0].message.content ?? '{}');
+    const content = JSON.parse(raw);
     return NextResponse.json(content);
   } catch (err) {
     console.error('generate-slide error:', err);
