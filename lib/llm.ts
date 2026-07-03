@@ -94,14 +94,18 @@ export async function llmChat({ messages, maxTokens = 2500, temperature = 0.6, j
 
   // 3 pass: transient xatolar (503 high demand, daqiqalik 429) bir necha
   // sekunddan keyin o'tib ketadi — butun so'rovni yiqitmasdan qayta urinamiz.
+  // Oxirgi pass'da cooldown E'TIBORSIZ: hammasi cooldown'da bo'lsa ham,
+  // urinmasdan yiqilishdan ko'ra urinib ko'rish afzal (75s eski 429
+  // allaqachon o'tgan bo'lishi mumkin).
   for (let pass = 0; pass < 3; pass++) {
     if (pass > 0) await sleep(pass === 1 ? 2500 : 5000);
+    const ignoreCooldown = pass === 2;
 
     for (const p of PROVIDERS) {
       const apiKey = process.env[p.envKey]?.trim();
       if (!apiKey) continue;
       const dead = deadUntil.get(p.name);
-      if (dead && Date.now() < dead) continue;
+      if (!ignoreCooldown && dead && Date.now() < dead) continue;
 
       try {
         const client = getClient(p, apiKey);
