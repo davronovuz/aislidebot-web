@@ -16,21 +16,21 @@ interface Provider {
   supportsJsonMode: boolean;
 }
 
-// Tartib muhim — sifat/ishonchlilik bo'yicha (Python llm_client.py bilan sinxron)
+// Tartib muhim — BEPUL provayderlar ASOSIY (user qarori: pullik OpenAI
+// faqat eng oxirgi zaxira). Python llm_client.py bilan sinxron.
 const PROVIDERS: Provider[] = [
-  { name: 'openai', envKey: 'OPENAI_API_KEY', model: 'gpt-4o-mini', supportsJsonMode: true },
-  {
-    name: 'gemini',
-    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
-    envKey: 'GEMINI_API_KEY',
-    model: 'gemini-2.5-flash-lite',
-    supportsJsonMode: true,
-  },
   {
     name: 'groq-oss',
     baseURL: 'https://api.groq.com/openai/v1',
     envKey: 'GROQ_API_KEY',
     model: 'openai/gpt-oss-120b',
+    supportsJsonMode: true,
+  },
+  {
+    name: 'gemini',
+    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+    envKey: 'GEMINI_API_KEY',
+    model: 'gemini-2.5-flash-lite',
     supportsJsonMode: true,
   },
   {
@@ -47,6 +47,8 @@ const PROVIDERS: Provider[] = [
     model: 'gpt-oss-120b',
     supportsJsonMode: false,
   },
+  // Oxirgi zaxira — kvotasi bo'lsa ishlaydi, bo'lmasa o'tkazib yuboriladi
+  { name: 'openai', envKey: 'OPENAI_API_KEY', model: 'gpt-4o-mini', supportsJsonMode: true },
 ];
 
 const clients = new Map<string, OpenAI>();
@@ -120,7 +122,7 @@ export async function llmChat({ messages, maxTokens = 2500, temperature = 0.6, j
         if (!content.trim()) throw new Error('empty response');
         if (jsonMode && !p.supportsJsonMode) content = stripJsonFences(content);
         if (jsonMode) JSON.parse(content); // validatsiya — buzuq JSON bo'lsa keyingi provayderga
-        if (p.name !== 'openai') console.warn(`[LLM] Zahira provayder ishlatildi: ${p.name} (${p.model})`);
+        console.log(`[LLM] Provayder: ${p.name} (${p.model})`);
         return content;
       } catch (err) {
         lastError = err;
