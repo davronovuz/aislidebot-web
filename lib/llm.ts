@@ -51,12 +51,24 @@ const PROVIDERS: Provider[] = [
 
 const clients = new Map<string, OpenAI>();
 
+// O'lik provayder cooldown'i: kvota/limit xatosi bergan provayder 10 daqiqa
+// o'tkazib yuboriladi — har so'rovda o'lik OpenAI'ga urinib vaqt yo'qotmaymiz.
+// (Module-level: warm lambda instansiyalari orasida saqlanadi.)
+const deadUntil = new Map<string, number>();
+const COOLDOWN_MS = 10 * 60 * 1000;
+
 function getClient(p: Provider, apiKey: string): OpenAI {
   const key = `${p.name}`;
   if (!clients.has(key)) {
-    clients.set(key, new OpenAI({ apiKey, baseURL: p.baseURL, timeout: 120_000, maxRetries: 1 }));
+    // maxRetries: 0 — kvota 429 retry bilan tuzalmaydi, darhol keyingi provayderga
+    clients.set(key, new OpenAI({ apiKey, baseURL: p.baseURL, timeout: 90_000, maxRetries: 0 }));
   }
   return clients.get(key)!;
+}
+
+function isQuotaError(err: unknown): boolean {
+  const status = (err as { status?: number })?.status;
+  return status === 429 || status === 401 || status === 403;
 }
 
 function stripJsonFences(text: string): string {
@@ -81,6 +93,8 @@ export async function llmChat({ messages, maxTokens = 2500, temperature = 0.6, j
   for (const p of PROVIDERS) {
     const apiKey = process.env[p.envKey]?.trim();
     if (!apiKey) continue;
+    const dead = deadUntil.get(p.name);
+    if (dead && Date.now() < dead) continue;
 
     try {
       const client = getClient(p, apiKey);
@@ -99,6 +113,9 @@ export async function llmChat({ messages, maxTokens = 2500, temperature = 0.6, j
       return content;
     } catch (err) {
       lastError = err;
+      if (isQuotaError(err)) {
+        deadUntil.set(p.name, Date.now() + COOLDOWN_MS);
+      }
       console.warn(`[LLM] ${p.name} xato: ${(err as Error).message?.slice(0, 200)} — keyingisiga o'tamiz`);
     }
   }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { llmChat } from '@/lib/llm';
 
+export const maxDuration = 60;
+
 const LANG_MAP: Record<string, string> = {
   uz: "O'zbek tilida yozing",
   ru: 'Пишите на русском языке',
