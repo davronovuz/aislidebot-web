@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { llmChat } from '@/lib/llm';
+import { BOT_API_URL, API_SECRET } from '@/lib/constants';
 
 export const maxDuration = 60;
 
@@ -8,6 +9,9 @@ const LANG_MAP: Record<string, string> = {
   ru: 'На русском языке',
   en: 'In English',
 };
+
+const FRIENDLY_ERROR =
+  "AI kanallar hozir band. Iltimos, 1-2 daqiqadan so'ng qayta urinib ko'ring 🙏";
 
 /**
  * Butun prezentatsiyani BITTA LLM chaqiruvida yaratadi.
@@ -23,6 +27,30 @@ export async function POST(req: NextRequest) {
     const n = Math.min(Math.max(Number(slideCount) || 5, 3), 20);
     const langInstruction = LANG_MAP[language] ?? LANG_MAP.uz;
 
+    // 1) Backend (Postgres KESH + server zanjiri): mashhur mavzular keshdan
+    // millisekundlarda qaytadi — LLM umuman chaqirilmaydi, kvota tejaladi
+    try {
+      const beRes = await fetch(`${BOT_API_URL}/api/v1/content/deck`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${API_SECRET}`,
+        },
+        body: JSON.stringify({ topic, details: details ?? '', slide_count: n, language }),
+        signal: AbortSignal.timeout(55_000),
+      });
+      if (beRes.ok) {
+        const data = await beRes.json();
+        if (Array.isArray(data.slides) && data.slides.length > 0) {
+          return NextResponse.json(data);
+        }
+      }
+      console.warn(`[deck] backend javob bermadi (${beRes.status}) — lokal zanjirga o'tamiz`);
+    } catch (e) {
+      console.warn(`[deck] backend xato — lokal zanjirga o'tamiz: ${(e as Error).message?.slice(0, 100)}`);
+    }
+
+    // 2) Lokal zanjir (Vercel'dan to'g'ridan-to'g'ri) — backend yotgan holat uchun
     const raw = await llmChat({
       jsonMode: true,
       // gpt-oss reasoning modellari "o'ylash"ga ham token sarflaydi —
@@ -79,11 +107,12 @@ RULES:
 
     const content = JSON.parse(raw);
     if (!Array.isArray(content.slides) || content.slides.length === 0) {
-      return NextResponse.json({ error: 'Empty deck generated' }, { status: 502 });
+      return NextResponse.json({ error: FRIENDLY_ERROR }, { status: 502 });
     }
     return NextResponse.json(content);
   } catch (err) {
     console.error('generate-deck error:', err);
-    return NextResponse.json({ error: (err as Error).message ?? 'Deck generation failed' }, { status: 500 });
+    // Foydalanuvchiga texnik xato EMAS — tushunarli o'zbekcha xabar
+    return NextResponse.json({ error: FRIENDLY_ERROR }, { status: 503 });
   }
 }

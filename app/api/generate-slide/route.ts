@@ -74,6 +74,9 @@ RULES:
     return NextResponse.json(content);
   } catch (err) {
     console.error('generate-slide error:', err);
-    return NextResponse.json({ error: (err as Error).message ?? 'Slide generation failed' }, { status: 500 });
+    return NextResponse.json(
+      { error: "AI kanallar hozir band. Iltimos, 1-2 daqiqadan so'ng qayta urinib ko'ring 🙏" },
+      { status: 503 },
+    );
   }
 }

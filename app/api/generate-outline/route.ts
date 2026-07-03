@@ -66,6 +66,9 @@ Create exactly ${slideCount} slides.`,
     return NextResponse.json(content);
   } catch (err) {
     console.error('generate-outline error:', err);
-    return NextResponse.json({ error: (err as Error).message ?? 'Generation failed' }, { status: 500 });
+    return NextResponse.json(
+      { error: "AI kanallar hozir band. Iltimos, 1-2 daqiqadan so'ng qayta urinib ko'ring 🙏" },
+      { status: 503 },
+    );
   }
 }
