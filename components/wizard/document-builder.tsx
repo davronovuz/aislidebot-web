@@ -17,8 +17,8 @@ interface PriceInfo { balance: number; pricePerPage: number; }
 const STEP_LABELS_FULL = ['Mavzu', 'Ma\'lumot', 'Sozlama', 'Tasdiq'];
 const STEP_LABELS_COMPACT = ['Mavzu', 'Sozlama', 'Tasdiq'];
 
-// Krossvordda titul/talaba ma'lumoti shart emas — shu sabab "Ma'lumot" stepi yashirinadi
-const COMPACT_TYPES = new Set<string>(['krossvord']);
+// Krossvord/testda titul/talaba ma'lumoti shart emas — shu sabab "Ma'lumot" stepi yashirinadi
+const COMPACT_TYPES = new Set<string>(['krossvord', 'test']);
 
 export default function DocumentBuilder({
   productType,
@@ -31,6 +31,7 @@ export default function DocumentBuilder({
   const product = PRODUCTS.find(p => p.id === productType)!;
   const isCompact = COMPACT_TYPES.has(productType);
   const isCrossword = productType === 'krossvord';
+  const isTest = productType === 'test';
   const isThesis = productType === 'tezis';
 
   const STEP_LABELS = isCompact ? STEP_LABELS_COMPACT : STEP_LABELS_FULL;
@@ -40,8 +41,8 @@ export default function DocumentBuilder({
   const [step, setStep] = useState(1);
   const [topic, setTopic] = useState('');
   const [subject, setSubject] = useState('');
-  // Krossvord uchun "pages" aslida so'z soni (default 18)
-  const initialCount = isCrossword ? 18 : (product.minPages ?? 10);
+  // Krossvord uchun "pages" aslida so'z soni (default 18), test uchun savol soni (default 20)
+  const initialCount = isCrossword ? 18 : isTest ? 20 : (product.minPages ?? 10);
   const [pages, setPages] = useState(initialCount);
   const [email, setEmail] = useState(''); // tezis uchun
   const [lang, setLang] = useState<Language>('uz');
@@ -142,6 +143,7 @@ export default function DocumentBuilder({
       university,
       faculty,
       ...(isCrossword ? { word_count: pages } : {}),
+      ...(isTest ? { question_count: pages } : {}),
       ...(isThesis && email.trim() ? { email: email.trim() } : {}),
     };
 
@@ -170,10 +172,10 @@ export default function DocumentBuilder({
   const totalPrice = (priceInfo.pricePerPage ?? 500) * pages;
   const canAfford = balance >= totalPrice;
   const selectedLang = LANGUAGES.find(l => l.id === lang);
-  const min = isCrossword ? 10 : (product.minPages ?? 5);
-  const max = isCrossword ? 30 : (product.maxPages ?? 50);
-  const unitLabel = isCrossword ? "so'z" : "bet";
-  const counterTitle = isCrossword ? "So'zlar soni" : "Sahifalar soni";
+  const min = isCrossword ? 10 : isTest ? 10 : (product.minPages ?? 5);
+  const max = isCrossword ? 30 : isTest ? 50 : (product.maxPages ?? 50);
+  const unitLabel = isCrossword ? "so'z" : isTest ? "savol" : "bet";
+  const counterTitle = isCrossword ? "So'zlar soni" : isTest ? "Savollar soni" : "Sahifalar soni";
 
   return (
     <div className="min-h-screen bg-[#F2F2F7] flex flex-col">
@@ -235,6 +237,8 @@ export default function DocumentBuilder({
                 }}
                 placeholder={isCrossword
                   ? "Masalan: Inson tanasi a'zolari, Sport turlari, O'zbek milliy taomlari"
+                  : isTest
+                  ? "Masalan: Informatika 7-sinf: Algoritmlar, Biologiya: Hujayra tuzilishi"
                   : "Masalan: Sun'iy intellektning ta'lim sohasidagi o'rni va istiqbollari"
                 }
                 rows={4}
@@ -317,7 +321,7 @@ export default function DocumentBuilder({
           <div>
             <h2 className="text-[21px] font-bold text-black">Sozlamalar</h2>
             <p className="text-[13px] text-black/40 mt-1">
-              {isCrossword ? "So'z soni va til" : "Sahifa soni, til va format"}
+              {isCrossword ? "So'z soni va til" : isTest ? "Savol soni va til" : "Sahifa soni, til va format"}
             </p>
             <div className="mt-5 space-y-2.5">
               {/* Pages / Words */}
@@ -380,8 +384,8 @@ export default function DocumentBuilder({
                 </div>
               </div>
 
-              {/* Format — krossvord faqat DOCX, shu sabab yashiramiz */}
-              {!isCrossword && (
+              {/* Format — krossvord/test faqat DOCX, shu sabab yashiramiz */}
+              {!isCompact && (
                 <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] px-4 py-4">
                   <span className="text-[10px] font-semibold text-black/35 uppercase tracking-wider">Fayl formati</span>
                   <div className="flex gap-2 mt-2.5">
@@ -438,9 +442,11 @@ export default function DocumentBuilder({
                 isThesis && email && { icon: '📧', label: 'E-mail', value: email },
                 isCrossword
                   ? { icon: '🔤', label: "So'zlar", value: `~${pages} ta` }
+                  : isTest
+                  ? { icon: '❓', label: 'Savollar', value: `${pages} ta` }
                   : { icon: '📄', label: 'Sahifalar', value: `${pages} ta` },
                 { icon: selectedLang?.flag, label: 'Til', value: selectedLang?.label },
-                !isCrossword && { icon: fileFormat === 'docx' ? '📝' : '📄', label: 'Format', value: fileFormat.toUpperCase() },
+                !isCompact && { icon: fileFormat === 'docx' ? '📝' : '📄', label: 'Format', value: fileFormat.toUpperCase() },
               ].filter(Boolean).map((row, i, arr) => row && (
                 <div key={i} className={cn('px-4 py-3.5 flex items-start gap-3', i < arr.length - 1 && 'border-b border-black/5')}>
                   <span className="text-base mt-0.5">{row.icon}</span>

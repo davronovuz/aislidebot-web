@@ -72,8 +72,26 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-[#F2F2F7]">
       <div className="bg-white px-4 pt-5 pb-3 border-b border-black/[0.05]">
-        <h1 className="text-[20px] font-bold text-black">Admin Panel</h1>
-        <p className="text-[12px] text-black/35 mt-0.5">Mahsulotlarni boshqarish</p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-[20px] font-bold text-black">Admin Panel</h1>
+            <p className="text-[12px] text-black/35 mt-0.5">Mahsulotlarni boshqarish</p>
+          </div>
+          <div className="flex gap-1.5">
+            <a
+              href="/admin/dashboard"
+              className="flex items-center gap-1 bg-black text-white text-[12px] font-semibold px-3 py-2 rounded-full"
+            >
+              📊 Dashboard
+            </a>
+            <a
+              href="/admin/moderation"
+              className="flex items-center gap-1 bg-amber-50 text-amber-600 text-[12px] font-semibold px-3 py-2 rounded-full"
+            >
+              🛎
+            </a>
+          </div>
+        </div>
         <div className="flex bg-black/[0.06] rounded-xl p-1 mt-3">
           {([
             { key: 'templates', icon: Layers,     label: 'Shablonlar'    },

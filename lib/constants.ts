@@ -30,6 +30,7 @@ export const PRODUCTS: ProductMeta[] = [
   { id: 'amaliy_ish',      name: 'Amaliy ish',          icon: '⚙️', desc: 'Amaliy mashg\'ulot ishi',            minPages: 5,   maxPages: 20,  priceUnit: 'page',     category: 'document' },
   { id: 'hisobot',         name: 'Hisobot',             icon: '📈', desc: 'Amaliyot yoki loyiha hisoboti',       minPages: 10,  maxPages: 30,  priceUnit: 'page',     category: 'document' },
   { id: 'krossvord',       name: 'Krossvord',           icon: '🔤', desc: 'Mavzu bo\'yicha interaktiv krossvord', priceUnit: 'fixed', category: 'creative' },
+  { id: 'test',            name: 'Test savollari',      icon: '❓', desc: 'Variantli test + javoblar kaliti',    priceUnit: 'fixed', category: 'creative' },
 ];
 
 export const PLANS: PlanDetails[] = [

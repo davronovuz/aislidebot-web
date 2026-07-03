@@ -26,7 +26,8 @@ export type ProductType =
   | 'laboratoriya_ishi'
   | 'amaliy_ish'
   | 'hisobot'
-  | 'krossvord';
+  | 'krossvord'
+  | 'test';
 
 export interface ProductMeta {
   id: ProductType;

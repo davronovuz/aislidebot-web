@@ -70,8 +70,18 @@ export default function MarketplacePage() {
     <div className="min-h-screen bg-[#F2F2F7]">
       {/* Header */}
       <div className="bg-[#F2F2F7] px-4 pt-5 pb-3">
-        <h1 className="text-[22px] font-bold text-black">Bozor</h1>
-        <p className="text-[12px] text-black/35 mt-0.5">Shablonlar va tayyor ishlar</p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-[22px] font-bold text-black">Bozor</h1>
+            <p className="text-[12px] text-black/35 mt-0.5">Shablonlar va tayyor ishlar</p>
+          </div>
+          <button
+            onClick={() => { haptic('medium'); router.push('/marketplace/sell'); }}
+            className="flex items-center gap-1.5 bg-black text-white text-[12px] font-semibold px-3.5 py-2 rounded-full active:scale-[0.97] transition-transform"
+          >
+            💰 Ish sotish
+          </button>
+        </div>
 
         {/* Tabs */}
         <div className="flex bg-black/[0.06] rounded-xl p-1 mt-3">
