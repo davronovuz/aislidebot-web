@@ -127,8 +127,7 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
       }));
       setSlides(skeletons);
 
-      for (let i = 0; i < outlineData.slides.length; i++) {
-        setGenIndex(i);
+      const genOne = async (i: number): Promise<boolean> => {
         try {
           const slideData = await api.generateSlide({
             topic,
@@ -151,13 +150,37 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
               )))
               .catch(() => {});
           }
+          return true;
         } catch {
-          // Bitta slayd yiqilsa jarayon TO'XTAMAYDI — slayd error holatida
-          // qoladi, foydalanuvchi ✏️ orqali qayta yaratadi
           setSlides(prev => prev.map((s, idx) =>
             idx === i ? { ...s, status: 'error' as const } : s
           ));
-          haptic('error');
+          return false;
+        }
+      };
+
+      const pause = (ms: number) => new Promise(r => setTimeout(r, ms));
+      const failed: number[] = [];
+      for (let i = 0; i < outlineData.slides.length; i++) {
+        setGenIndex(i);
+        // Bepul provayderlarning daqiqalik limitiga urilmaslik uchun pauza
+        if (i > 0) await pause(2500);
+        const ok = await genOne(i);
+        if (!ok) failed.push(i);
+      }
+
+      // Yiqilganlarni avtomatik qayta urinish — TPM limiti bu orada tiklanadi.
+      // Jarayon to'xtamaydi; oxirigacha tuzalmagani ✏️ bilan qo'lda qayta yaratiladi.
+      if (failed.length > 0) {
+        await pause(15000);
+        for (const i of failed) {
+          setGenIndex(i);
+          setSlides(prev => prev.map((s, idx) =>
+            idx === i ? { ...s, status: 'regenerating' as const } : s
+          ));
+          await pause(2500);
+          const ok = await genOne(i);
+          if (!ok) haptic('error');
         }
       }
 

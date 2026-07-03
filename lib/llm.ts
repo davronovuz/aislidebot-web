@@ -58,7 +58,9 @@ const clients = new Map<string, OpenAI>();
 // daqiqalik) — qisqa; 5xx (transient) — umuman cooldown YO'Q.
 const deadUntil = new Map<string, number>();
 const AUTH_COOLDOWN_MS = 30 * 60 * 1000; // 401/403 — kalit/kvota o'lik
-const RATE_COOLDOWN_MS = 75 * 1000;      // 429 — odatda 1 daqiqada tiklanadi
+// 429 — Groq/Gemini'da bu ko'pincha DAQIQALIK token limiti (TPM), 20-30s da
+// tiklanadi. Uzoq cooldown eng yaxshi provayderni keraksiz chetlatadi.
+const RATE_COOLDOWN_MS = 20 * 1000;
 
 function getClient(p: Provider, apiKey: string): OpenAI {
   const key = `${p.name}`;
@@ -100,7 +102,8 @@ export async function llmChat({ messages, maxTokens = 2500, temperature = 0.6, j
   // urinmasdan yiqilishdan ko'ra urinib ko'rish afzal (75s eski 429
   // allaqachon o'tgan bo'lishi mumkin).
   for (let pass = 0; pass < 3; pass++) {
-    if (pass > 0) await sleep(pass === 1 ? 2500 : 5000);
+    // TPM limitlari ~daqiqalik oynada tiklanadi — pass orasi yetarlicha uzun
+    if (pass > 0) await sleep(pass === 1 ? 6000 : 12000);
     const ignoreCooldown = pass === 2;
 
     for (const p of PROVIDERS) {
