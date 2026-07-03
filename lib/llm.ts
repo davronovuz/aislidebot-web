@@ -53,6 +53,19 @@ const PROVIDERS: Provider[] = [
 
 const clients = new Map<string, OpenAI>();
 
+// Kalit rotatsiyasi: ENVKEY, ENVKEY_2 ... ENVKEY_5 — har biri alohida bepul
+// kvota. Bir nechta bepul akkaunt kaliti qo'shilsa sig'im ko'payadi.
+function envKeys(base: string): string[] {
+  const keys: string[] = [];
+  const first = process.env[base]?.trim();
+  if (first) keys.push(first);
+  for (let i = 2; i <= 5; i++) {
+    const k = process.env[`${base}_${i}`]?.trim();
+    if (k) keys.push(k);
+  }
+  return keys;
+}
+
 // O'lik provayder cooldown'i (module-level: warm lambda'lar orasida saqlanadi).
 // Muhim farq: 401/403 (kalit o'lik) — uzoq; 429 (rate limit, ko'pincha
 // daqiqalik) — qisqa; 5xx (transient) — umuman cooldown YO'Q.
@@ -63,7 +76,7 @@ const AUTH_COOLDOWN_MS = 30 * 60 * 1000; // 401/403 — kalit/kvota o'lik
 const RATE_COOLDOWN_MS = 20 * 1000;
 
 function getClient(p: Provider, apiKey: string): OpenAI {
-  const key = `${p.name}`;
+  const key = `${p.name}:${apiKey.slice(-6)}`;
   if (!clients.has(key)) {
     // maxRetries: 0 — kvota 429 retry bilan tuzalmaydi, darhol keyingi provayderga
     clients.set(key, new OpenAI({ apiKey, baseURL: p.baseURL, timeout: 90_000, maxRetries: 0 }));
@@ -107,36 +120,37 @@ export async function llmChat({ messages, maxTokens = 2500, temperature = 0.6, j
     const ignoreCooldown = pass === 2;
 
     for (const p of PROVIDERS) {
-      const apiKey = process.env[p.envKey]?.trim();
-      if (!apiKey) continue;
-      const dead = deadUntil.get(p.name);
-      if (!ignoreCooldown && dead && Date.now() < dead) continue;
+      for (const [ki, apiKey] of envKeys(p.envKey).entries()) {
+        const slot = `${p.name}#${ki}`;
+        const dead = deadUntil.get(slot);
+        if (!ignoreCooldown && dead && Date.now() < dead) continue;
 
-      try {
-        const client = getClient(p, apiKey);
-        const response = await client.chat.completions.create({
-          model: p.model,
-          messages,
-          max_tokens: maxTokens,
-          temperature,
-          ...(jsonMode && p.supportsJsonMode ? { response_format: { type: 'json_object' } } : {}),
-        });
-        let content = response.choices[0]?.message?.content ?? '';
-        if (!content.trim()) throw new Error('empty response');
-        if (jsonMode && !p.supportsJsonMode) content = stripJsonFences(content);
-        if (jsonMode) JSON.parse(content); // validatsiya — buzuq JSON bo'lsa keyingi provayderga
-        console.log(`[LLM] Provayder: ${p.name} (${p.model})`);
-        return content;
-      } catch (err) {
-        lastError = err;
-        const status = errStatus(err);
-        if (status === 401 || status === 403) {
-          deadUntil.set(p.name, Date.now() + AUTH_COOLDOWN_MS);
-        } else if (status === 429) {
-          deadUntil.set(p.name, Date.now() + RATE_COOLDOWN_MS);
+        try {
+          const client = getClient(p, apiKey);
+          const response = await client.chat.completions.create({
+            model: p.model,
+            messages,
+            max_tokens: maxTokens,
+            temperature,
+            ...(jsonMode && p.supportsJsonMode ? { response_format: { type: 'json_object' } } : {}),
+          });
+          let content = response.choices[0]?.message?.content ?? '';
+          if (!content.trim()) throw new Error('empty response');
+          if (jsonMode && !p.supportsJsonMode) content = stripJsonFences(content);
+          if (jsonMode) JSON.parse(content); // validatsiya — buzuq JSON bo'lsa keyingi provayderga
+          console.log(`[LLM] Provayder: ${slot} (${p.model})`);
+          return content;
+        } catch (err) {
+          lastError = err;
+          const status = errStatus(err);
+          if (status === 401 || status === 403) {
+            deadUntil.set(slot, Date.now() + AUTH_COOLDOWN_MS);
+          } else if (status === 429) {
+            deadUntil.set(slot, Date.now() + RATE_COOLDOWN_MS);
+          }
+          // 5xx — cooldown yo'q: keyingi pass'da yana urinamiz
+          console.warn(`[LLM] ${slot} xato (pass ${pass + 1}): ${(err as Error).message?.slice(0, 150)}`);
         }
-        // 5xx — cooldown yo'q: keyingi pass'da yana urinamiz
-        console.warn(`[LLM] ${p.name} xato (pass ${pass + 1}): ${(err as Error).message?.slice(0, 150)}`);
       }
     }
   }

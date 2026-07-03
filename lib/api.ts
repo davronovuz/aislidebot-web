@@ -29,6 +29,18 @@ export const api = {
     presentationTitle: string;
   }) => call<Omit<Slide, 'slide_number' | 'image' | 'status'>>('generate-slide', params),
 
+  // Butun prezentatsiya BITTA so'rovda — bepul provayder limitlariga chidamli
+  generateDeck: (params: {
+    topic: string;
+    details?: string;
+    slideCount: number;
+    language: string;
+  }) => call<{
+    title: string;
+    subtitle: string;
+    slides: (Omit<Slide, 'slide_number' | 'image' | 'status'> & { slide_number: number; notes?: string })[];
+  }>('generate-deck', params),
+
   fetchImage: (keywords: { primary: string; secondary: string; fallback: string }) =>
     call<{ url: string; thumb: string }>('fetch-image', { keywords }),
 

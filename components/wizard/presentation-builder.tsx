@@ -118,71 +118,40 @@ export default function PresentationBuilder({ priceInfo }: { priceInfo: PriceInf
     setSlides([]);
 
     try {
-      const outlineData = await api.generateOutline({ topic, details, slideCount, language: lang });
-      setOutline(outlineData);
+      // BUTUN prezentatsiya BITTA so'rovda — N+1 alohida so'rov o'rniga.
+      // Bepul provayderlarning daqiqalik limitiga chidamli (server 3-pass
+      // retry + provayder/kalit rotatsiyasi bilan).
+      const deck = await api.generateDeck({ topic, details, slideCount, language: lang });
 
-      const skeletons: Slide[] = outlineData.slides.map((s, i) => ({
-        slide_number: i + 1, title: s.title,
-        content: null, bullet_points: null, image_keywords: null, image: null, status: 'pending',
+      setOutline({
+        title: deck.title,
+        subtitle: deck.subtitle,
+        slides: deck.slides.map((s, i) => ({ slide_number: i + 1, title: s.title, key_points: s.bullet_points ?? [], image_hint: '' })),
+      });
+
+      const ready: Slide[] = deck.slides.map((s, i) => ({
+        slide_number: i + 1,
+        title: s.title,
+        content: s.content ?? null,
+        bullet_points: s.bullet_points ?? null,
+        image_keywords: s.image_keywords ?? null,
+        image: null,
+        status: 'content' as const,
+        ...(s.notes ? { notes: s.notes } : {}),
       }));
-      setSlides(skeletons);
+      setSlides(ready);
+      setGenIndex(ready.length - 1);
 
-      const genOne = async (i: number): Promise<boolean> => {
-        try {
-          const slideData = await api.generateSlide({
-            topic,
-            slideTitle: outlineData.slides[i].title,
-            slideNumber: i + 1,
-            totalSlides: outlineData.slides.length,
-            language: lang,
-            keyPoints: outlineData.slides[i].key_points,
-            presentationTitle: outlineData.title,
-          });
-
-          setSlides(prev => prev.map((s, idx) =>
-            idx === i ? { ...s, ...slideData, status: 'content' as const } : s
-          ));
-
-          if (slideData.image_keywords) {
-            api.fetchImage(slideData.image_keywords)
-              .then(img => setSlides(prev => prev.map((s, idx) =>
-                idx === i ? { ...s, image: img, status: 'ready' as const } : s
-              )))
-              .catch(() => {});
-          }
-          return true;
-        } catch {
-          setSlides(prev => prev.map((s, idx) =>
-            idx === i ? { ...s, status: 'error' as const } : s
-          ));
-          return false;
+      // Rasmlar parallel yuklanadi — matn allaqachon tayyor, UX kutmaydi
+      ready.forEach((s, i) => {
+        if (s.image_keywords) {
+          api.fetchImage(s.image_keywords)
+            .then(img => setSlides(prev => prev.map((p, idx) =>
+              idx === i ? { ...p, image: img, status: 'ready' as const } : p
+            )))
+            .catch(() => {});
         }
-      };
-
-      const pause = (ms: number) => new Promise(r => setTimeout(r, ms));
-      const failed: number[] = [];
-      for (let i = 0; i < outlineData.slides.length; i++) {
-        setGenIndex(i);
-        // Bepul provayderlarning daqiqalik limitiga urilmaslik uchun pauza
-        if (i > 0) await pause(2500);
-        const ok = await genOne(i);
-        if (!ok) failed.push(i);
-      }
-
-      // Yiqilganlarni avtomatik qayta urinish — TPM limiti bu orada tiklanadi.
-      // Jarayon to'xtamaydi; oxirigacha tuzalmagani ✏️ bilan qo'lda qayta yaratiladi.
-      if (failed.length > 0) {
-        await pause(15000);
-        for (const i of failed) {
-          setGenIndex(i);
-          setSlides(prev => prev.map((s, idx) =>
-            idx === i ? { ...s, status: 'regenerating' as const } : s
-          ));
-          await pause(2500);
-          const ok = await genOne(i);
-          if (!ok) haptic('error');
-        }
-      }
+      });
 
       haptic('success');
       setPhase('done');
