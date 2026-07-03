@@ -25,7 +25,9 @@ export async function POST(req: NextRequest) {
 
     const raw = await llmChat({
       jsonMode: true,
-      maxTokens: Math.min(1200 + n * 650, 14000),
+      // gpt-oss reasoning modellari "o'ylash"ga ham token sarflaydi —
+      // buffer katta bo'lishi shart, aks holda JSON chala kesiladi
+      maxTokens: Math.min(4000 + n * 900, 20000),
       temperature: 0.6,
       messages: [
         {

@@ -127,12 +127,16 @@ export async function llmChat({ messages, maxTokens = 2500, temperature = 0.6, j
 
         try {
           const client = getClient(p, apiKey);
+          const isReasoning = p.model.includes('gpt-oss');
           const response = await client.chat.completions.create({
             model: p.model,
             messages,
             max_tokens: maxTokens,
             temperature,
             ...(jsonMode && p.supportsJsonMode ? { response_format: { type: 'json_object' } } : {}),
+            // gpt-oss reasoning modellari: o'ylashni qisqartirib tokenni
+            // javobga qoldiramiz (structured JSON uchun chuqur o'ylash shart emas)
+            ...(isReasoning ? { reasoning_effort: 'low' as never } : {}),
           });
           let content = response.choices[0]?.message?.content ?? '';
           if (!content.trim()) throw new Error('empty response');
